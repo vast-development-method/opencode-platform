@@ -32,8 +32,7 @@ while IFS= read -r line || [ -n "$line" ]; do
                 exit 2
             }
             value="${line#*=}"
-            printf -v "$key" '%s' "$value"
-            export "$key"
+            declare -gx "$key=$value"
             ;;
         *)
             printf 'Invalid runtime credential line.\n' >&2
