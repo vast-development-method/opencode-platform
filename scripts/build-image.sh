@@ -33,9 +33,22 @@ tar -C "$ROOT_DIR/image/provision" -cf - . | project_cmd exec "$BUILD_NAME" -- t
 COMMON_ENV=(
     "AGENT_USER=$AGENT_USER"
     "NODE_MAJOR=$NODE_MAJOR"
-    "OPENCODE_INSTALL_URL=$OPENCODE_INSTALL_URL"
+    "OPENCODE_PACKAGE=$OPENCODE_PACKAGE"
+    "OPENCODE_EXPECTED_VERSION=$OPENCODE_EXPECTED_VERSION"
+    "GIT_MCP_PACKAGE=$GIT_MCP_PACKAGE"
+    "GIT_MCP_EXPECTED_VERSION=$GIT_MCP_EXPECTED_VERSION"
     "PLAYWRIGHT_MCP_PACKAGE=$PLAYWRIGHT_MCP_PACKAGE"
+    "PLAYWRIGHT_MCP_EXPECTED_VERSION=$PLAYWRIGHT_MCP_EXPECTED_VERSION"
     "PLAYWRIGHT_PACKAGE=$PLAYWRIGHT_PACKAGE"
+    "PLAYWRIGHT_EXPECTED_VERSION=$PLAYWRIGHT_EXPECTED_VERSION"
+    "TYPESCRIPT_PACKAGE=$TYPESCRIPT_PACKAGE"
+    "TYPESCRIPT_EXPECTED_VERSION=$TYPESCRIPT_EXPECTED_VERSION"
+    "TSX_PACKAGE=$TSX_PACKAGE"
+    "TSX_EXPECTED_VERSION=$TSX_EXPECTED_VERSION"
+    "RUFF_PACKAGE=$RUFF_PACKAGE"
+    "RUFF_EXPECTED_VERSION=$RUFF_EXPECTED_VERSION"
+    "MYPY_PACKAGE=$MYPY_PACKAGE"
+    "MYPY_EXPECTED_VERSION=$MYPY_EXPECTED_VERSION"
 )
 
 exec_with_env() {
@@ -48,9 +61,16 @@ exec_with_env() {
 }
 
 exec_with_env bash /opt/vdm-build/common.sh
-if [ "$VARIANT" != base ]; then
-    exec_with_env bash "/opt/vdm-build/${VARIANT}.sh"
-fi
+case "$VARIANT" in
+    base) ;;
+    php)
+        exec_with_env bash /opt/vdm-build/php.sh
+        exec_with_env bash /opt/vdm-build/typescript.sh
+        ;;
+    python|cpp|typescript|full)
+        exec_with_env bash "/opt/vdm-build/${VARIANT}.sh"
+        ;;
+esac
 
 project_cmd exec "$BUILD_NAME" \
     --env "PLATFORM_VERSION=$PLATFORM_VERSION" \

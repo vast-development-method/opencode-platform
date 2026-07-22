@@ -1,29 +1,26 @@
-# VDM Joomla MCP integration
+# Joomla MCP integration gate
 
-The only approved Joomla MCP implementation for this platform is:
+Reviewed: 2026-07-22
 
-- Repository: `https://github.com/vast-development-method/joomla-mcp`
-- Owner: Vast Development Method
-- Status: not yet released
-- Platform state: disabled
+The platform will use only the VDM-owned Joomla MCP:
 
-No third-party Joomla MCP implementation is selected, installed, referenced as a candidate or permitted as a
+`https://github.com/vast-development-method/joomla-mcp`
+
+The repository does not yet contain a reviewed release, so Joomla MCP is deliberately absent from the OpenCode
+runtime configuration, session environment template and install process. No third-party Joomla MCP is approved as a
 fallback.
 
 ## Activation gate
 
-The existing remote `joomla` configuration entry is an inert compatibility hook. Do not enable it until the VDM
-repository exists and supplies all of the following:
+Add the integration only when all of the following are true:
 
-1. A tagged release and immutable source reference.
-2. Documented transport, authentication and Joomla compatibility.
-3. A reviewed tool inventory and Joomla ACL mapping.
-4. Read-only defaults and explicit destructive-operation policy.
-5. Audit logging with credential and sensitive-parameter redaction.
-6. Pagination, response-size and rate limits.
-7. Automated tests for the supported Joomla 6.x versions.
-8. Signed or checksummed release artifacts.
-9. Upgrade, rollback and incident-response procedures.
+- The repository exists and publishes a versioned release.
+- The release exposes a documented capability and permission model.
+- Joomla service users use ordinary ACLs and are not Super Users by default.
+- Read-only and destructive tool groups are independently enforceable.
+- Authentication, token rotation, audit redaction and rate limits are tested.
+- Joomla 6 compatibility and upgrade behaviour are verified.
+- The package reference is immutable and recorded in `manifest/sources.lock.yaml`.
+- The MCP entry is added to the image only after the release review passes.
 
-When those gates pass, pin the exact release in `manifest/sources.lock.yaml`, set the runtime
-`JOOMLA_MCP_URL` and short-lived `JOOMLA_MCP_TOKEN`, then enable the server only for agents that need it.
+Until then, Joomla work continues through the PHP image, the Joomla CLI/API, ordinary browser testing and Git.

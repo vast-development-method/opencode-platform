@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+if [ "${1:-}" = info ]; then
+    exit 0
+fi
+
+if [ "${1:-}" = --project ]; then
+    shift 2
+fi
+
+case "${1:-}:${2:-}" in
+    image:export)
+        output="${4:?mock export output is required}"
+        metadata_dir="$(mktemp -d)"
+        trap 'rm -rf "$metadata_dir"' EXIT
+        printf 'architecture: x86_64\ncreation_date: 0\n' > "$metadata_dir/metadata.yaml"
+        tar -C "$metadata_dir" -cf "${output}.tar" metadata.yaml
+        dd if=/dev/zero of="${output}.rootfs" bs=1024 count=1 status=none
+        ;;
+    image:show)
+        exit 1
+        ;;
+    image:import|image:set-property)
+        printf '%s\n' "$*" >> "${MOCK_INCUS_LOG:?MOCK_INCUS_LOG is required}"
+        ;;
+    *)
+        printf 'Unexpected mock Incus invocation: %s\n' "$*" >&2
+        exit 1
+        ;;
+esac

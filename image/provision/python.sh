@@ -7,8 +7,8 @@ apt-get install -y --no-install-recommends \
     python3-dev \
     python3-pytest
 
-for tool in ruff mypy; do
-    if ! sudo -u opencode -H uv tool list | grep -q "^${tool} "; then
-        sudo -u opencode -H uv tool install "$tool"
-    fi
-done
+sudo -u opencode -H uv tool install --force "${RUFF_PACKAGE:?RUFF_PACKAGE is required}"
+sudo -u opencode -H uv tool install --force "${MYPY_PACKAGE:?MYPY_PACKAGE is required}"
+
+[ "$(sudo -u opencode -H /home/opencode/.local/bin/ruff --version | awk '{print $2}')" = "$RUFF_EXPECTED_VERSION" ]
+[ "$(sudo -u opencode -H /home/opencode/.local/bin/mypy --version | awk '{print $2}')" = "$MYPY_EXPECTED_VERSION" ]

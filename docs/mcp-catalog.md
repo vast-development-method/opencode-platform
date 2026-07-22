@@ -4,44 +4,47 @@
 
 ### Git
 
-Uses `mcp-server-git` from the Model Context Protocol project. It is constrained to `/workspace`.
+Uses `mcp-server-git` from the Model Context Protocol project. It can inspect and modify repositories and is still
+described upstream as early development. Version `2026.7.10` is preinstalled and constrained to `/workspace`.
 
 ### Playwright
 
-Microsoft's Playwright MCP is installed in PHP, TypeScript and full images. Keep it for exploratory browser QA.
-Use ordinary Playwright tests or the CLI for deterministic suites.
+Microsoft's Playwright MCP is installed in PHP, TypeScript and full images. Keep it for exploratory, persistent
+browser QA. The package is pinned and runs with an isolated browser profile. For large deterministic suites,
+ordinary Playwright tests or the Playwright CLI are more token-efficient.
 
 ## Ready but disabled
 
 ### GitHub
 
 Use the first-party `github/github-mcp-server`, preferably through GitHub's remote endpoint or a company gateway.
-Enable only the toolsets needed for a task.
+Limit toolsets; the full server can add substantial context and permissions.
 
 ### Gitea
 
-Use Gitea's own `https://gitea.com/gitea/gitea-mcp`. The company authority defaults to
-`https://git.vdm.dev`. Gitea integration is a permanent platform requirement and must remain available even
-while GitHub is used as the source host or CI front end.
-
-## Internal integrations awaiting releases
-
-### Joomla
-
-The only approved Joomla MCP source is `https://github.com/vast-development-method/joomla-mcp`.
-The generic remote configuration hook remains disabled until that repository publishes a reviewed release.
-No third-party Joomla MCP is selected, documented, installed or permitted by this platform.
-
-### JCB
-
-JCB MCP support is deferred. The disabled generic hook remains solely to avoid an image-format migration later;
-it must not be enabled until the VDM repository, protocol and first approved release exist.
+Use Gitea's own `https://gitea.com/gitea/gitea-mcp`. The company authority defaults to `https://git.vdm.dev`.
+The platform keeps its runtime endpoint and short-lived token support. Expose the audited deployment through the
+company MCP gateway.
 
 ## Candidate requiring approval
 
 ### Nextcloud
 
-The current community candidate remains disabled until code, dependency and permission review is complete.
+`cbcoutinho/nextcloud-mcp-server` is the current leading candidate because it exposes broad Files, Calendar,
+Contacts, Deck, Notes, Tables, Talk and other coverage, supports streamable HTTP and Login Flow v2, and provides
+tag-based exclusion. It remains community software and needs code, dependency and permission review.
+
+## Deferred VDM integrations
+
+### Joomla MCP
+
+No Joomla MCP is installed or configured in the images. The only approved future source is
+`https://github.com/vast-development-method/joomla-mcp`. See `docs/joomla-mcp-study.md`.
+
+### JCB MCP
+
+No JCB MCP is installed or configured. Integration starts only after the internal repository and its first reviewed
+release are available. See `docs/jcb-mcp-roadmap.md`.
 
 ## Context control
 

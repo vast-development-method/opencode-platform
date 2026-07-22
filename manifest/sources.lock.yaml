@@ -7,7 +7,8 @@ sources:
   opencode:
     repository: https://github.com/anomalyco/opencode
     inspected_ref: efb6cc2d4bf6332eb156709795d2b3a649198b65
-    build_ref: REVIEW_AND_PIN
+    package: opencode-ai
+    build_ref: 1.18.4
   incus:
     repository: https://github.com/lxc/incus
     inspected_ref: 5f70b59f323cb8750e3c1dd16213fedf2679d576
@@ -15,22 +16,27 @@ sources:
   git_mcp:
     repository: https://github.com/modelcontextprotocol/servers
     path: src/git
-    build_ref: REVIEW_AND_PIN
+    build_ref: v2026.7.10
   github_mcp:
     repository: https://github.com/github/github-mcp-server
-    build_ref: REVIEW_AND_PIN
+    build_ref: REMOTE_NOT_BUNDLED
   gitea_mcp:
     repository: https://gitea.com/gitea/gitea-mcp
-    build_ref: REVIEW_AND_PIN
+    build_ref: REMOTE_NOT_BUNDLED
   playwright_mcp:
     repository: https://github.com/microsoft/playwright-mcp
-    build_ref: REVIEW_AND_PIN
+    package: "@playwright/mcp"
+    build_ref: 0.0.78
   nextcloud_mcp:
     repository: https://github.com/cbcoutinho/nextcloud-mcp-server
     build_ref: DISABLED_UNTIL_AUDITED
+deferred_integrations:
   joomla_mcp:
     repository: https://github.com/vast-development-method/joomla-mcp
     build_ref: DISABLED_UNTIL_FIRST_RELEASE
   jcb_mcp:
-    repository: pending
-    build_ref: DISABLED_UNTIL_REPOSITORY_EXISTS
+    build_ref: DISABLED_UNTIL_REPOSITORY_AND_RELEASE_EXIST
+
+github_actions:
+  checkout: 3d3c42e5aac5ba805825da76410c181273ba90b1
+  upload_artifact: bbbca2ddaa5d8feaa63e36b76fdaad77386f024f

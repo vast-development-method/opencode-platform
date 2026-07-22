@@ -3,29 +3,23 @@
 The repository version, image alias, Gitea package version and release tag must match.
 
 ```text
-Repository tag:       v0.1.0
-Incus alias:          vdm-opencode-php/0.1.0
-Gitea package:        vdm-opencode-php/0.1.0
+Repository tag:       v0.2.0
+Incus alias:          vdm-opencode-php/0.2.0
+Gitea package:        vdm-opencode-php/0.2.0
 Build manifest:       /etc/vdm-opencode-platform/build.json
 ```
-
-## Development channel
-
-Floating upstream references may be used only while the platform is being explored. The resulting image must not
-be promoted to company production.
 
 ## Release channel
 
 Before a release:
 
-1. Replace `REVIEW_AND_PIN` entries in `manifest/sources.lock.yaml`.
-2. Replace `@latest` package references with exact approved versions.
-3. Mirror or archive upstream artefacts where licensing permits.
-4. Record SHA-256 checksums.
-5. Build from a clean runner.
-6. Run repository, guest, browser and security tests.
-7. Export and checksum the image.
-8. Pilot the image.
-9. Tag the repository and publish the matching package version.
+1. Review and deliberately update `manifest/toolchain.env` and `manifest/sources.lock.yaml`.
+2. Confirm that no floating dependency or mutable GitHub Action reference was introduced.
+3. Build from a clean, trusted Incus runner.
+4. Run repository, guest, browser and security tests.
+5. Export the image and verify the generated manifest and `SHA256SUMS`.
+6. Pilot the image.
+7. Tag the repository with the exact value from `VERSION` prefixed by `v`.
+8. Retain the GitHub workflow artifact as a short-lived download and publish the durable package to Gitea.
 
 Do not mutate an existing released image alias. Publish a new semantic version.

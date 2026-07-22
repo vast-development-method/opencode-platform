@@ -21,13 +21,13 @@ servers:
     transport: remote-or-stdio
     source: https://gitea.com/gitea/gitea-mcp
     default_authority: https://git.vdm.dev
-    note: Preserve this integration; pin an audited release before enabling it in company images.
+    note: Preserve this integration; expose it through the trusted company MCP gateway with a scoped identity.
   nextcloud:
     status: candidate-disabled
     trust: community
     transport: remote-preferred
     source: https://github.com/cbcoutinho/nextcloud-mcp-server
-    default_authority: https://nextcloud.example.invalid
+    default_authority: operator-supplied
     note: Audit and pin before adoption.
   playwright:
     status: enabled-on-web-images
@@ -36,21 +36,18 @@ servers:
     source: https://github.com/microsoft/playwright-mcp
     package: "@playwright/mcp"
     note: Prefer deterministic Playwright tests for suites; keep MCP for exploratory QA.
-  joomla:
-    status: internal-unfinished
-    trust: internal
-    transport: remote-preferred
-    source: https://github.com/vast-development-method/joomla-mcp
-    note: This is the only approved Joomla MCP source. Keep disabled until its first reviewed release.
-  jcb:
-    status: internal-unfinished
-    trust: internal
-    transport: remote-preferred
-    source: pending
-    note: Keep disabled until the VDM JCB MCP repository and first approved release are available.
   speech_to_text:
     status: optional
     trust: internal-endpoint
     transport: command-or-remote
     source: internal OpenAI-compatible transcription endpoint
-    note: Host microphone capture remains outside the VM; inject only transcribed text.
+    note: Host microphone capture should remain outside the VM; inject only transcribed text.
+
+deferred_integrations:
+  joomla:
+    status: not-installed
+    source: https://github.com/vast-development-method/joomla-mcp
+    activation_gate: Add only after the first VDM-reviewed release is available.
+  jcb:
+    status: not-installed
+    activation_gate: Add only after the VDM repository and first reviewed release are available.

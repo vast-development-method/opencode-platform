@@ -15,6 +15,8 @@ for agent in "${agents[@]}"; do
         die "Invalid model identifier: $model"
     fi
 
+    # The single-quoted program is evaluated inside the guest, where the injected variables exist.
+    # shellcheck disable=SC2016
     project_cmd exec "$NAME" --env "AGENT_NAME=$agent" --env "AGENT_MODEL=$model" -- bash -c '
 set -Eeuo pipefail
 file="/home/opencode/.config/opencode/agents/${AGENT_NAME}.md"

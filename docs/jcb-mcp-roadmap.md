@@ -1,6 +1,7 @@
 # JCB MCP roadmap
 
-The JCB MCP remains disabled until the internal project reaches an approved release.
+The JCB MCP is not installed or represented by a runtime endpoint. It will be added only after the internal
+repository exists and publishes an approved release.
 
 ## Required capability groups
 
@@ -25,7 +26,8 @@ The JCB MCP remains disabled until the internal project reaches an approved rele
 - Every mutation produces an auditable change set.
 - Per-project and per-component scope.
 
-## Integration contract
+## Integration gate
 
-The platform expects a remote endpoint supplied as `JCB_MCP_URL` and a short-lived token supplied as
-`JCB_MCP_TOKEN`. The `jcb` MCP entry remains disabled in the universal image until release approval.
+The future release must define its transport, endpoint, short-lived authentication, capability catalogue and
+permission model. Only then should a pinned source entry, runtime variables and a disabled-by-default OpenCode MCP
+entry be introduced in one reviewed change.

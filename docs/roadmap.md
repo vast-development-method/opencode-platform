@@ -1,12 +1,12 @@
 # Roadmap
 
-## Phase 1: Baseline
+## Phase 1: Baseline — implemented
 
-- Validate repository on Ubuntu builder.
-- Build PHP and TypeScript images.
+- Validate the repository on GitHub-hosted and Gitea runners.
+- Build all six variants on a trusted Incus runner.
 - Pilot local Git and Playwright MCP.
 - Configure ChatGPT Plus, Anthropic API, xAI API and local Llama routes.
-- Publish image packages to Gitea.
+- Expose short-lived GitHub build artifacts and publish durable image packages to Gitea.
 
 ## Phase 2: Broker
 
@@ -16,12 +16,11 @@
 - Enforce DNS-aware egress policy.
 - Add central audit and revocation tests.
 
-## Phase 3: Joomla and JCB
+## Phase 3: VDM Joomla and JCB
 
-- Publish and audit the first `vast-development-method/joomla-mcp` release.
-- Pin and integrate only the VDM Joomla MCP implementation.
+- Release and review `vast-development-method/joomla-mcp`.
 - Complete JCB MCP protocol and test suite.
-- Add read-only pilot integrations.
+- Add each integration only after its own activation gate passes.
 
 ## Phase 4: Fleet
 

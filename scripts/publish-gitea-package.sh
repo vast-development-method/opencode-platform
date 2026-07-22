@@ -17,7 +17,10 @@ PACKAGE_NAME="${GITEA_PACKAGE_NAME:-vdm-opencode-${VARIANT}}"
 for file in "$PACKAGE_DIR"/*; do
     [ -f "$file" ] || continue
     name="$(basename "$file")"
-    curl --fail-with-body \
+    curl --fail-with-body --silent --show-error \
+        --retry 4 \
+        --retry-all-errors \
+        --connect-timeout 15 \
         --user "${GITEA_PACKAGE_USER}:${GITEA_PACKAGE_TOKEN}" \
         --upload-file "$file" \
         "${GITEA_BASE_URL}/api/packages/${GITEA_PACKAGE_OWNER}/generic/${PACKAGE_NAME}/${PLATFORM_VERSION}/${name}"
