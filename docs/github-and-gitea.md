@@ -4,12 +4,12 @@
 
 GitHub can host the source, validate every push and retain downloadable workflow artifacts. Incus image creation
 still requires a trusted self-hosted Ubuntu machine with hardware virtualisation, Incus and sufficient storage.
-Gitea remains fully supported for source hosting, Actions, its first-party MCP and durable Generic Packages.
+Gitea remains fully supported for source hosting, Actions, its first-party MCP and durable Generic Packages. A third supported mode builds and publishes directly from an in-house machine without registering any Actions runner; GitHub does not need inbound access to that host.
 
 Do not make GitHub and Gitea independently writable authorities for the same branches. Choose one source of truth
 and mirror in one direction.
 
-## Recommended migration path back to Gitea
+## Local builder without GitHub Actions\n\nRun `scripts/local-image-release.sh` on the trusted Incus builder. It validates, builds, packages and verifies locally, and can upload directly to Gitea when `LOCAL_PUBLISH_GITEA=true`. See `docs/local-image-builds.md` for the exact environment variables and tagged production-release procedure. This is the simplest option for a builder behind a firewall because all network connections originate from the builder.\n\n## Recommended migration path back to Gitea
 
 1. Keep GitHub as the temporary writable authority while the first `0.2.x` images are proven.
 2. Create a private pull mirror in Gitea from
