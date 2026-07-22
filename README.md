@@ -2,26 +2,22 @@
 
 A company-wide, version-controlled platform definition for hardened OpenCode agent virtual machines on Incus.
 
-The repository is the authority. Incus images and Gitea packages are generated artifacts.
+The repository is the authority. Incus images and package registries contain generated artifacts.
 
 ## What this repository provides
 
-- A common Ubuntu 24.04 VM base and five image variants: `base`, `php`, `python`, `cpp`, `typescript`, and `full`.
-- Repeatable Incus projects, networks, ACL scaffolding, profiles, resource limits, image builds and launches.
+- A common Ubuntu 24.04 VM base and five variants: `base`, `php`, `python`, `cpp`, `typescript`, and `full`.
+- Repeatable Incus projects, networks, ACL scaffolding, profiles, image builds and instance launches.
 - OpenCode agents for orchestration, architecture, implementation, testing, review, security, browser QA,
   documentation, PHP/Joomla, Python, C/C++, and TypeScript.
 - Local Git MCP and Playwright browser MCP integration.
-- Disabled-by-default remote MCP definitions for GitHub, Gitea, Nextcloud, Joomla, JCB and speech-to-text.
+- Disabled-by-default remote MCP definitions for GitHub, Gitea, Nextcloud, the future VDM Joomla MCP, future JCB
+  MCP, and speech-to-text.
 - Runtime-only credential handling under the guest's `/run` tmpfs.
-- A reference external broker stack for OpenBao, an LLM gateway and a TLS reverse proxy.
-- Gitea Actions workflows for validation and image builds.
-- Gitea Generic Package publishing scripts.
+- Gitea Generic Package publishing and GitHub Actions artifact downloads.
 - Image sanitisation and secret-scanning tests.
-- Host-side voice recording and transcription through any OpenAI-compatible transcription endpoint.
 
 ## Recommended image strategy
-
-Use specialised images for normal work and the full image only when a project genuinely crosses languages.
 
 | Image | Primary use | Browser MCP |
 |---|---|---|
@@ -32,14 +28,12 @@ Use specialised images for normal work and the full image only when a project ge
 | `typescript` | Web applications, Node.js and browser automation | Enabled |
 | `full` | Mixed-language platform work | Enabled |
 
-Every image inherits the same security policy and agent framework.
+Use specialised images for ordinary work and `full` only for genuinely mixed-language projects.
 
 ## First deployment
 
 ```bash
 cp .env.example .env
-# Edit only public authority URLs here. Do not add secrets.
-
 ./tests/validate-repository.sh
 ./scripts/bootstrap-host.sh
 ./scripts/apply-incus.sh
@@ -48,31 +42,30 @@ cp .env.example .env
 ./scripts/start-session.sh opencode-llewellyn
 ```
 
-Inside OpenCode, use `/connect` for ChatGPT Plus where supported by OpenCode. Anthropic subscription reuse is not
-configured: use an approved Anthropic API credential or the company LLM gateway. Grok should use the xAI API or
-company gateway. Local Llama uses the configured OpenAI-compatible local endpoint.
+Do not put secrets in `.env`. Runtime tokens belong in a mode-`0600` session file under
+`/run/user/$UID/vdm-opencode/`.
 
-## Credentials
+## Build and distribution
 
-No long-lived credential belongs in an image.
+The image workflow runs on a self-hosted runner labelled `self-hosted`, `linux`, and `incus`. Manual runs and
+version tags build all variants and upload downloadable GitHub Actions artifacts. Tagged builds can additionally
+publish the same files to Gitea Generic Packages when the Gitea publishing variables and secret are configured.
 
-`start-session.sh` creates a root-owned guest runtime directory under `/run/vdm-opencode-session`, sets
-`XDG_DATA_HOME` to that tmpfs location, injects only the current short-lived variables, launches OpenCode, and
-deletes the directory on exit. OpenCode provider and MCP OAuth material generated during that session therefore
-does not survive a clean VM stop.
+See `docs/github-gitea-roadmap.md` for the hosting choices and migration path.
 
-For production, point the VM at a trusted external LLM/MCP gateway and issue short-lived, scoped session tokens.
+## MCP policy
 
-## Important limitations
+- Gitea MCP remains a supported, disabled-by-default first-party integration.
+- `https://github.com/vast-development-method/joomla-mcp` is the only approved Joomla MCP source and remains
+  disabled until its first reviewed release.
+- JCB MCP remains deferred and disabled until the internal implementation has a repository and approved release.
+- No long-lived MCP credential belongs in an image.
 
-- The reference broker deployment is a scaffold, not a substitute for a security review.
-- Nextcloud MCP is community software and remains disabled until your team pins and audits a chosen implementation.
-- Joomla MCP has strong candidates but remains disabled until the study in `docs/joomla-mcp-study.md` is completed.
-- JCB MCP is intentionally a placeholder until the internal server reaches an approved release.
-- Incus ACLs cannot safely express every hostname-based egress rule. Enforce strict outbound access at a proxy or
-  firewall that supports DNS-aware policy.
-- Builds currently support a stable-channel bootstrap with optional expected-version checks. Before production,
-  populate all version and checksum locks in `manifest/toolchain.env`.
+## Release limitations
+
+The workflow and repository structure are ready for repeatable validation and image packaging, but production
+promotion remains blocked until every `REVIEW_AND_PIN` and floating `@latest` reference is replaced with an
+approved immutable version and checksum. See `docs/versioning-and-promotion.md`.
 
 ## Documentation
 
@@ -83,9 +76,7 @@ Start with:
 - `docs/security-model.md`
 - `docs/image-variants.md`
 - `docs/mcp-catalog.md`
-- `docs/provider-integration.md`
-- `docs/browser-testing.md`
-- `docs/credentials-and-brokers.md`
-- `docs/scaling-and-operations.md`
+- `docs/github-gitea-roadmap.md`
 - `docs/gitea-packages.md`
-- `docs/backup-and-migration.md`
+- `docs/versioning-and-promotion.md`
+- `docs/known-limitations.md`
