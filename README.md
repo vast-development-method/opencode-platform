@@ -43,8 +43,8 @@ cp .env.example .env
 ./tests/validate-repository.sh
 ./scripts/bootstrap-host.sh
 ./scripts/apply-incus.sh
-./scripts/build-image.sh php
-./scripts/package-image.sh php
+export LOCAL_BUILD_VARIANTS=php
+./scripts/local-image-release.sh
 ./scripts/launch-vm.sh php opencode-llewellyn
 ./scripts/start-session.sh opencode-llewellyn
 ```
@@ -88,6 +88,7 @@ Start with:
 - `docs/browser-testing.md`
 - `docs/credentials-and-brokers.md`
 - `docs/scaling-and-operations.md`
-- `docs/local-image-builds.md`\n- `docs/gitea-packages.md`
+- `docs/local-image-builds.md`
+- `docs/gitea-packages.md`
 - `docs/github-and-gitea.md`
 - `docs/backup-and-migration.md`
