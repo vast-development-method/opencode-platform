@@ -39,6 +39,16 @@ For optional Gitea publication from a GitHub tag build, configure:
 - variables `GITEA_PACKAGE_OWNER` and `GITEA_PACKAGE_USER`;
 - secret `GITEA_PACKAGE_TOKEN` with package-write scope only.
 
+Protect `master` and require the validation workflow. For the first release candidate, manually run the image
+workflow, download all six packages, verify `SHA256SUMS` in each one and import at least one package into a clean
+Incus project. Tags are release identities and must never be recreated or force-moved after publication.
+
+## Production promotion gate
+
+A successful workflow is necessary but not sufficient for production promotion. Promote only from a clean trusted
+runner after validation, the complete six-variant build, checksum verification, guest and security tests, a clean
+pilot import and a matching protected release tag have all passed.
+
 ## Distribution choice
 
 - GitHub workflow artifacts are convenient build downloads and expire according to repository retention policy.
