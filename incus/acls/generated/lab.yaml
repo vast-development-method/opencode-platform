@@ -3,5 +3,5 @@ description: 'VDM generated egress policy: lab'
 config: {}
 ingress: []
 egress:
-- action: allow
-  description: Experimental lab egress
+  - action: allow
+    description: Experimental lab egress

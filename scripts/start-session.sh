@@ -34,7 +34,9 @@ validate_runtime_file() {
     local file="$1"
     local line
     local key
-    [ -f "$file" ] && [ ! -L "$file" ] || die "Runtime env must be a regular non-symlink file: $file"
+    if [ ! -f "$file" ] || [ -L "$file" ]; then
+        die "Runtime env must be a regular non-symlink file: $file"
+    fi
     [ "$(stat -c '%u' "$file")" = "$UID" ] || die "Runtime env file must be owned by UID $UID: $file"
     [ "$(stat -c '%a' "$file")" = 600 ] || die "Runtime env file must have mode 0600: $file"
     [ "$(stat -c '%h' "$file")" = 1 ] || die "Runtime env file must have exactly one hard link: $file"

@@ -7,6 +7,8 @@ source "$SCRIPT_DIR/lib/common.sh"
 NAME="${1:-}"
 [ -n "$NAME" ] || die "Usage: $0 INSTANCE_NAME"
 
+# The single-quoted command is intentionally evaluated inside the guest.
+# shellcheck disable=SC2016
 project_cmd exec "$NAME" -- bash -c \
     'systemctl list-units --type=service --all --no-legend "vdm-opencode-*.service" |
      awk "{print \$1}" | xargs -r systemctl stop' >/dev/null 2>&1 || true

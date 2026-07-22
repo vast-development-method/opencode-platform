@@ -50,9 +50,12 @@ elif [ "${VDM_RELEASE_MODE:-false}" = true ]; then
 fi
 
 MARKER="$STAGING/${ARTIFACT_ID}.complete.tar"
+marker_files=(release-entry.json)
+if [ -f "$STAGING/release-entry.sigstore.json" ]; then
+    marker_files+=(release-entry.sigstore.json)
+fi
 tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
-    -C "$STAGING" -cf "$MARKER" release-entry.json \
-    $([ -f "$STAGING/release-entry.sigstore.json" ] && printf '%s' release-entry.sigstore.json)
+    -C "$STAGING" -cf "$MARKER" "${marker_files[@]}"
 
 gitea_curl() {
     local method="${1:?method required}"

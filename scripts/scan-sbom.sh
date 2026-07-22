@@ -13,7 +13,7 @@ jq -n \
     --arg result "$([ "$critical" -eq 0 ] && [ "$high_fixed" -eq 0 ] && printf pass || printf fail)" \
     '{policy:"security/vulnerability-policy.yaml",critical:$critical,high_with_fix:$high_with_fix,result:$result}' \
     > "$PACKAGE_DIR/evidence/vulnerability-policy-result.json"
-[ "$critical" -eq 0 ] && [ "$high_fixed" -eq 0 ] || {
+if [ "$critical" -ne 0 ] || [ "$high_fixed" -ne 0 ]; then
     printf 'Vulnerability policy failed: critical=%s high-with-fix=%s\n' "$critical" "$high_fixed" >&2
     exit 1
-}
+fi
