@@ -7,6 +7,13 @@ source "$ROOT_DIR/manifest/platform.env"
 # shellcheck disable=SC1091
 source "$ROOT_DIR/manifest/toolchain.env"
 
+if [ -f "$ROOT_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$ROOT_DIR/.env"
+    set +a
+fi
+
 log() {
     printf '\n\033[1;34m==> %s\033[0m\n' "$*"
 }
@@ -38,8 +45,8 @@ project_cmd() {
 
 wait_for_vm() {
     local name="$1"
-    local attempt
-    for attempt in $(seq 1 180); do
+    local _
+    for _ in $(seq 1 180); do
         if project_cmd exec "$name" --mode=non-interactive -- true >/dev/null 2>&1; then
             return 0
         fi

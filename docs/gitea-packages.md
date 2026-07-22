@@ -20,12 +20,19 @@ export GITEA_PACKAGE_TOKEN='runtime-only-token'
 
 The publisher token needs package write permission only. Colleagues should receive read-only package access.
 
+Tagged GitHub builds can publish the same package set to Gitea when repository variable
+`GITEA_PUBLISH_ENABLED=true`, variable `GITEA_BASE_URL`, owner/user variables and secret
+`GITEA_PACKAGE_TOKEN` are configured. Gitea tag builds publish directly through `.gitea/workflows/build-images.yaml`.
+
 ## Import
 
-Download every file in the package version, verify `SHA256SUMS`, then:
+Download every file in one package version, then use the checked import helper:
 
 ```bash
-incus image import ./vdm-opencode-php-0.1.0* --alias vdm-opencode-php/0.1.0
+./scripts/import-image-package.sh ./downloaded-package
 ```
+
+The helper verifies every checksum and the manifest before importing the Incus payload. It refuses to overwrite an
+existing image alias.
 
 Do not commit exported VM files into Git history.

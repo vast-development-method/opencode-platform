@@ -49,10 +49,33 @@ if ! command -v uv >/dev/null 2>&1; then
     curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 fi
 
-sudo -u "$AGENT_USER" -H env OPENCODE_INSTALL_DIR="$AGENT_HOME/.local/bin" \
-    bash -c 'curl -fsSL "${OPENCODE_INSTALL_URL:-https://opencode.ai/install}" | bash'
+npm install --global "${OPENCODE_PACKAGE:?OPENCODE_PACKAGE is required}"
+opencode_path="$(command -v opencode)"
+ln -sfn "$opencode_path" "$AGENT_HOME/.local/bin/opencode"
+
+sudo -u "$AGENT_USER" -H env \
+    UV_TOOL_BIN_DIR="$AGENT_HOME/.local/bin" \
+    UV_TOOL_DIR="$AGENT_HOME/.local/share/uv/tools" \
+    uv tool install --force "${GIT_MCP_PACKAGE:?GIT_MCP_PACKAGE is required}"
 
 test -x "$AGENT_HOME/.local/bin/opencode"
+test -x "$AGENT_HOME/.local/bin/mcp-server-git"
+
+installed_opencode="$("$AGENT_HOME/.local/bin/opencode" --version | tr -d '[:space:]')"
+[ "$installed_opencode" = "$OPENCODE_EXPECTED_VERSION" ] || {
+    printf 'OpenCode version mismatch: expected %s, got %s\n' \
+        "$OPENCODE_EXPECTED_VERSION" "$installed_opencode" >&2
+    exit 1
+}
+
+installed_git_mcp="$(sudo -u "$AGENT_USER" -H \
+    "$AGENT_HOME/.local/share/uv/tools/mcp-server-git/bin/python" -c \
+    'import importlib.metadata; print(importlib.metadata.version("mcp-server-git"))')"
+[ "$installed_git_mcp" = "$GIT_MCP_EXPECTED_VERSION" ] || {
+    printf 'Git MCP version mismatch: expected %s, got %s\n' \
+        "$GIT_MCP_EXPECTED_VERSION" "$installed_git_mcp" >&2
+    exit 1
+}
 
 git config --system init.defaultBranch main
 git config --system fetch.prune true

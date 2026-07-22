@@ -17,6 +17,7 @@ case "$command" in
     mcp) exec "$SCRIPT_DIR/mcp-toggle.sh" "$@" ;;
     models) exec "$SCRIPT_DIR/configure-models.sh" "$@" ;;
     package) exec "$SCRIPT_DIR/package-image.sh" "$@" ;;
+    import-package) exec "$SCRIPT_DIR/import-image-package.sh" "$@" ;;
     publish-package) exec "$SCRIPT_DIR/publish-gitea-package.sh" "$@" ;;
     export) exec "$SCRIPT_DIR/export-instance.sh" "$@" ;;
     import) exec "$SCRIPT_DIR/import-instance.sh" "$@" ;;
@@ -35,6 +36,7 @@ occtl commands:
   mcp INSTANCE SERVER true|false
   models INSTANCE
   package VARIANT
+  import-package DIRECTORY [IMAGE_ALIAS]
   publish-package VARIANT
   export INSTANCE [FILE]
   import FILE INSTANCE

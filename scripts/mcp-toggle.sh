@@ -10,7 +10,8 @@ STATE="${3:-}"
 [ -n "$NAME" ] && [ -n "$SERVER" ] && [ -n "$STATE" ] || die "Usage: $0 INSTANCE SERVER true|false"
 case "$STATE" in true|false) ;; *) die "State must be true or false" ;; esac
 
-CONFIG="$AGENT_HOME/.config/opencode/opencode.json"
+# The single-quoted program is evaluated inside the guest, where the injected variables exist.
+# shellcheck disable=SC2016
 project_cmd exec "$NAME" --env "MCP_SERVER=$SERVER" --env "MCP_STATE=$STATE" -- bash -c '
 set -Eeuo pipefail
 config="/home/opencode/.config/opencode/opencode.json"

@@ -3,19 +3,21 @@
 ## 1. Clone and validate
 
 ```bash
-git clone ssh://git@git.vdm.dev/platform/vdm-opencode-platform.git
+git clone https://github.com/vast-development-method/opencode-platform.git
 cd vdm-opencode-platform
 cp .env.example .env
 ./tests/validate-repository.sh
 ```
 
-Edit `VDM_NEXTCLOUD_BASE_URL` before enabling Nextcloud integration. Do not place secrets in `.env`.
+Use `GITEA_BASE_URL` and `INCUS_STORAGE_POOL` in `.env` when the defaults do not match the host. Do not place
+secrets in `.env`.
 
 ## 2. Prepare Incus
 
 ```bash
 ./scripts/bootstrap-host.sh
 ./scripts/apply-incus.sh
+./scripts/ci/check-incus-runner.sh
 ```
 
 ## 3. Build one image
@@ -62,7 +64,7 @@ The file is under `/run/user/$UID`, which is tmpfs. Obtain only short-lived scop
 ./scripts/mcp-toggle.sh opencode-llewellyn playwright true
 ```
 
-Do not enable Joomla or JCB until their servers are approved.
+Joomla and JCB are intentionally absent and cannot be enabled until their VDM-owned releases are approved.
 
 ## 7. Start OpenCode
 

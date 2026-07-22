@@ -20,7 +20,7 @@ A trusted broker host should retain long-lived upstream credentials and expose o
 - LLM gateway virtual keys with model, rate and spend limits;
 - GitHub/Gitea MCP sessions limited to selected repositories and operations;
 - Nextcloud MCP sessions limited to selected users, apps and tagged folders;
-- Joomla/JCB MCP sessions defaulting to read-only or non-destructive toolsets.
+- future VDM-owned Joomla/JCB integrations, added only after their release gates pass.
 
 The VM must never receive a Vaultwarden or OpenBao identity capable of reading all upstream secrets.
 

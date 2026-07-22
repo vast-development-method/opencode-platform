@@ -11,11 +11,11 @@ The repository is the authority. Incus images and Gitea packages are generated a
 - OpenCode agents for orchestration, architecture, implementation, testing, review, security, browser QA,
   documentation, PHP/Joomla, Python, C/C++, and TypeScript.
 - Local Git MCP and Playwright browser MCP integration.
-- Disabled-by-default remote MCP definitions for GitHub, Gitea, Nextcloud, Joomla, JCB and speech-to-text.
+- Disabled-by-default remote MCP definitions for GitHub, Gitea, Nextcloud and speech-to-text.
 - Runtime-only credential handling under the guest's `/run` tmpfs.
 - A reference external broker stack for OpenBao, an LLM gateway and a TLS reverse proxy.
-- Gitea Actions workflows for validation and image builds.
-- Gitea Generic Package publishing scripts.
+- Provider-correct GitHub Actions and Gitea Actions workflows.
+- Downloadable GitHub workflow artifacts and durable Gitea Generic Package publication.
 - Image sanitisation and secret-scanning tests.
 - Host-side voice recording and transcription through any OpenAI-compatible transcription endpoint.
 
@@ -38,12 +38,13 @@ Every image inherits the same security policy and agent framework.
 
 ```bash
 cp .env.example .env
-# Edit only public authority URLs here. Do not add secrets.
+# Edit only host settings here. Do not add secrets.
 
 ./tests/validate-repository.sh
 ./scripts/bootstrap-host.sh
 ./scripts/apply-incus.sh
 ./scripts/build-image.sh php
+./scripts/package-image.sh php
 ./scripts/launch-vm.sh php opencode-llewellyn
 ./scripts/start-session.sh opencode-llewellyn
 ```
@@ -67,12 +68,12 @@ For production, point the VM at a trusted external LLM/MCP gateway and issue sho
 
 - The reference broker deployment is a scaffold, not a substitute for a security review.
 - Nextcloud MCP is community software and remains disabled until your team pins and audits a chosen implementation.
-- Joomla MCP has strong candidates but remains disabled until the study in `docs/joomla-mcp-study.md` is completed.
-- JCB MCP is intentionally a placeholder until the internal server reaches an approved release.
+- Joomla MCP is not installed. The only future integration target is
+  `vast-development-method/joomla-mcp`, after its first reviewed release.
+- JCB MCP is not installed and will be added only after the internal repository and first reviewed release exist.
 - Incus ACLs cannot safely express every hostname-based egress rule. Enforce strict outbound access at a proxy or
   firewall that supports DNS-aware policy.
-- Builds currently support a stable-channel bootstrap with optional expected-version checks. Before production,
-  populate all version and checksum locks in `manifest/toolchain.env`.
+- Incus packages are architecture-specific and must be produced by a trusted hardware-virtualisation runner.
 
 ## Documentation
 
@@ -88,4 +89,5 @@ Start with:
 - `docs/credentials-and-brokers.md`
 - `docs/scaling-and-operations.md`
 - `docs/gitea-packages.md`
+- `docs/github-and-gitea.md`
 - `docs/backup-and-migration.md`

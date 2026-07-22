@@ -3,13 +3,16 @@
   "mcp": {
     "git": {
       "type": "local",
-      "command": ["uvx", "mcp-server-git", "--repository", "/workspace"],
+      "command": ["/home/opencode/.local/bin/mcp-server-git", "--repository", "/workspace"],
       "enabled": true,
       "timeout": 15000
     },
     "playwright": {
       "type": "local",
-      "command": ["npx", "-y", "@playwright/mcp@latest", "--headless"],
+      "command": ["/usr/local/bin/vdm-playwright-mcp", "--headless", "--isolated", "--output-dir", "/workspace/.artifacts/browser"],
+      "environment": {
+        "PLAYWRIGHT_BROWSERS_PATH": "/opt/ms-playwright"
+      },
       "enabled": false,
       "timeout": 30000
     },
@@ -39,26 +42,6 @@
       "oauth": false,
       "headers": {
         "Authorization": "Bearer {env:NEXTCLOUD_MCP_TOKEN}"
-      },
-      "enabled": false,
-      "timeout": 30000
-    },
-    "joomla": {
-      "type": "remote",
-      "url": "{env:JOOMLA_MCP_URL}",
-      "oauth": false,
-      "headers": {
-        "Authorization": "Bearer {env:JOOMLA_MCP_TOKEN}"
-      },
-      "enabled": false,
-      "timeout": 30000
-    },
-    "jcb": {
-      "type": "remote",
-      "url": "{env:JCB_MCP_URL}",
-      "oauth": false,
-      "headers": {
-        "Authorization": "Bearer {env:JCB_MCP_TOKEN}"
       },
       "enabled": false,
       "timeout": 30000
