@@ -40,8 +40,12 @@ done
 payload_files=("${metadata_files[@]}" "${data_files[@]}")
 
 alias_name="${REQUESTED_ALIAS:-$(jq -r '.image' "$PACKAGE_DIR/manifest.json")}"
-[ -n "$alias_name" ] && [ "$alias_name" != null ] || die "No image alias was supplied or recorded."
-project_cmd image show "$alias_name" >/dev/null 2>&1 && die "Image alias already exists: $alias_name"
+if [ -z "$alias_name" ] || [ "$alias_name" = null ]; then
+    die "No image alias was supplied or recorded."
+fi
+if project_cmd image show "$alias_name" >/dev/null 2>&1; then
+    die "Image alias already exists: $alias_name"
+fi
 
 project_cmd image import "${payload_files[@]}" --alias "$alias_name"
 project_cmd image set-property "$alias_name" org.vdm.platform "$(jq -r '.platform' "$PACKAGE_DIR/manifest.json")"

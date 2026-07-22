@@ -7,7 +7,9 @@ source "$SCRIPT_DIR/lib/common.sh"
 NAME="${1:-}"
 SERVER="${2:-}"
 STATE="${3:-}"
-[ -n "$NAME" ] && [ -n "$SERVER" ] && [ -n "$STATE" ] || die "Usage: $0 INSTANCE SERVER true|false"
+if [ -z "$NAME" ] || [ -z "$SERVER" ] || [ -z "$STATE" ]; then
+    die "Usage: $0 INSTANCE SERVER true|false"
+fi
 case "$STATE" in true|false) ;; *) die "State must be true or false" ;; esac
 
 # The single-quoted program is evaluated inside the guest, where the injected variables exist.

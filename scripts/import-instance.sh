@@ -6,7 +6,9 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 BACKUP="${1:-}"
 NAME="${2:-}"
-[ -f "$BACKUP" ] && [ -n "$NAME" ] || die "Usage: $0 BACKUP.tar.zst NEW_INSTANCE_NAME"
+if [ ! -f "$BACKUP" ] || [ -z "$NAME" ]; then
+    die "Usage: $0 BACKUP.tar.zst NEW_INSTANCE_NAME"
+fi
 
 project_cmd import "$BACKUP" "$NAME"
 log "Imported $NAME"

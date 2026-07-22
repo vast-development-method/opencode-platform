@@ -10,7 +10,9 @@ for command in incus jq tar zstd sha256sum; do
 done
 
 [ "$(uname -s)" = Linux ] || die "The image runner must be Linux."
-[ -r /dev/kvm ] && [ -w /dev/kvm ] || die "The image runner requires read/write access to /dev/kvm."
+if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+    die "The image runner requires read/write access to /dev/kvm."
+fi
 
 incus_cmd info >/dev/null 2>&1 || die "The runner cannot communicate with the Incus daemon."
 
