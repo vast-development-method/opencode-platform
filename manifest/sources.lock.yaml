@@ -1,5 +1,5 @@
 schema: 1
-generated_on: 2026-07-17
+generated_on: 2026-07-22
 policy:
   require_immutable_refs_for_release: true
   allow_floating_refs_for_development: true
@@ -28,9 +28,9 @@ sources:
   nextcloud_mcp:
     repository: https://github.com/cbcoutinho/nextcloud-mcp-server
     build_ref: DISABLED_UNTIL_AUDITED
-  joomla_mcp4joomla:
-    repository: https://github.com/nikosdion/joomla-mcp-php
-    build_ref: DISABLED_UNTIL_SELECTED
-  joomla_component_mcp:
-    repository: https://github.com/OnepointConsultingLtd/joomla-mcp-server
-    build_ref: DISABLED_UNTIL_SELECTED
+  joomla_mcp:
+    repository: https://github.com/vast-development-method/joomla-mcp
+    build_ref: DISABLED_UNTIL_FIRST_RELEASE
+  jcb_mcp:
+    repository: pending
+    build_ref: DISABLED_UNTIL_REPOSITORY_EXISTS
