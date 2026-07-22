@@ -1,0 +1,19 @@
+description: General OpenCode VM
+config:
+  limits.cpu: "4"
+  limits.memory: 8GiB
+  security.secureboot: "true"
+  user.vdm.variant: base
+devices:
+  root:
+    type: disk
+    path: /
+    pool: default
+    size: 80GiB
+  eth0:
+    type: nic
+    name: eth0
+    network: vdm-agentbr0
+    security.acls: vdm-agent-runtime
+    security.acls.default.ingress.action: reject
+    security.acls.default.egress.action: allow

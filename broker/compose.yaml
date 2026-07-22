@@ -1,0 +1,47 @@
+services:
+  openbao:
+    image: ${OPENBAO_IMAGE:?Set an approved OpenBao image digest}
+    command: server -config=/openbao/config/config.hcl
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - ./config/openbao.hcl:/openbao/config/config.hcl:ro
+      - openbao-data:/openbao/file
+    networks:
+      - broker
+
+  litellm:
+    image: ${LITELLM_IMAGE:?Set an approved LiteLLM image digest}
+    command: ["--config", "/etc/litellm/config.yaml", "--port", "4000"]
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?Set a broker master key through secret injection}
+    volumes:
+      - ./config/litellm.yaml:/etc/litellm/config.yaml:ro
+    networks:
+      - broker
+      - egress
+
+  caddy:
+    image: ${CADDY_IMAGE:?Set an approved Caddy image digest}
+    ports:
+      - "443:443"
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - broker
+      - egress
+
+networks:
+  broker:
+    internal: true
+  egress: {}
+
+volumes:
+  openbao-data:
+  caddy-data:
+  caddy-config:

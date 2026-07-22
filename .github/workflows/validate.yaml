@@ -1,0 +1,17 @@
+name: Validate platform
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install validation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq shellcheck yamllint
+      - name: Validate
+        run: ./tests/validate-repository.sh

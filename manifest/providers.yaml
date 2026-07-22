@@ -1,0 +1,23 @@
+schema: 1
+providers:
+  chatgpt:
+    requested_service: ChatGPT Plus
+    recommended_path: OpenCode-supported ChatGPT login or company gateway
+    credential_location: guest tmpfs session only
+    persistent_in_image: false
+  anthropic:
+    requested_service: Claude
+    recommended_path: Anthropic API or approved company gateway
+    credential_location: external broker
+    persistent_in_image: false
+    warning: Do not rely on unofficial Claude Pro/Max subscription plugins.
+  xai:
+    requested_service: Grok
+    recommended_path: xAI API or approved company gateway
+    credential_location: external broker
+    persistent_in_image: false
+  local_llama:
+    requested_service: Local Llama
+    recommended_path: OpenAI-compatible endpoint on trusted LAN
+    credential_location: none or short-lived gateway token
+    persistent_in_image: false

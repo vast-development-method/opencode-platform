@@ -1,0 +1,19 @@
+description: TypeScript and browser OpenCode VM
+config:
+  limits.cpu: "8"
+  limits.memory: 16GiB
+  security.secureboot: "true"
+  user.vdm.variant: typescript
+devices:
+  root:
+    type: disk
+    path: /
+    pool: default
+    size: 120GiB
+  eth0:
+    type: nic
+    name: eth0
+    network: vdm-agentbr0
+    security.acls: vdm-agent-runtime
+    security.acls.default.ingress.action: reject
+    security.acls.default.egress.action: allow

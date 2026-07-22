@@ -1,0 +1,47 @@
+schema: 1
+platform: vdm-opencode-platform
+version: 0.1.0
+base_image: images:ubuntu/24.04/cloud
+variants:
+  base:
+    alias: vdm-opencode-base
+    cpus: 4
+    memory: 8GiB
+    disk: 80GiB
+    purpose: General repository analysis and documentation.
+    browser_mcp: false
+  php:
+    alias: vdm-opencode-php
+    cpus: 8
+    memory: 16GiB
+    disk: 120GiB
+    purpose: Joomla, JCB, PHP and Composer projects.
+    browser_mcp: true
+  python:
+    alias: vdm-opencode-python
+    cpus: 8
+    memory: 16GiB
+    disk: 100GiB
+    purpose: Python services, MCP servers and automation.
+    browser_mcp: false
+  cpp:
+    alias: vdm-opencode-cpp
+    cpus: 12
+    memory: 24GiB
+    disk: 140GiB
+    purpose: Native C and C++ systems, graphics and Linux tooling.
+    browser_mcp: false
+  typescript:
+    alias: vdm-opencode-typescript
+    cpus: 8
+    memory: 16GiB
+    disk: 120GiB
+    purpose: TypeScript, Node.js, frontend and browser testing.
+    browser_mcp: true
+  full:
+    alias: vdm-opencode-full
+    cpus: 16
+    memory: 32GiB
+    disk: 200GiB
+    purpose: Mixed-language platform engineering.
+    browser_mcp: true

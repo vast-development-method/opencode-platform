@@ -1,0 +1,36 @@
+schema: 1
+generated_on: 2026-07-17
+policy:
+  require_immutable_refs_for_release: true
+  allow_floating_refs_for_development: true
+sources:
+  opencode:
+    repository: https://github.com/anomalyco/opencode
+    inspected_ref: efb6cc2d4bf6332eb156709795d2b3a649198b65
+    build_ref: REVIEW_AND_PIN
+  incus:
+    repository: https://github.com/lxc/incus
+    inspected_ref: 5f70b59f323cb8750e3c1dd16213fedf2679d576
+    build_ref: distribution-package
+  git_mcp:
+    repository: https://github.com/modelcontextprotocol/servers
+    path: src/git
+    build_ref: REVIEW_AND_PIN
+  github_mcp:
+    repository: https://github.com/github/github-mcp-server
+    build_ref: REVIEW_AND_PIN
+  gitea_mcp:
+    repository: https://gitea.com/gitea/gitea-mcp
+    build_ref: REVIEW_AND_PIN
+  playwright_mcp:
+    repository: https://github.com/microsoft/playwright-mcp
+    build_ref: REVIEW_AND_PIN
+  nextcloud_mcp:
+    repository: https://github.com/cbcoutinho/nextcloud-mcp-server
+    build_ref: DISABLED_UNTIL_AUDITED
+  joomla_mcp4joomla:
+    repository: https://github.com/nikosdion/joomla-mcp-php
+    build_ref: DISABLED_UNTIL_SELECTED
+  joomla_component_mcp:
+    repository: https://github.com/OnepointConsultingLtd/joomla-mcp-server
+    build_ref: DISABLED_UNTIL_SELECTED

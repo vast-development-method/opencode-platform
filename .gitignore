@@ -1,0 +1,41 @@
+.env
+.env.*
+!.env.example
+*.secret
+*.token
+*.key
+*.pem
+*.p12
+*.pfx
+*.backup
+*.tar
+*.tar.gz
+*.tar.zst
+*.zip
+build/
+dist/
+artifacts/
+.cache/
+.pytest_cache/
+__pycache__/
+node_modules/
+vendor/
+coverage/
+.runtime/
+.DS_Store
+
+# OpenCode credentials and state
+auth.json
+mcp-auth.json
+.opencode-state/
+.local/share/opencode/
+
+# SSH and Git credentials
+id_rsa*
+id_ed25519*
+known_hosts.old
+.git-credentials
+.netrc
+
+# Runtime sessions must live on tmpfs, not in Git
+sessions/

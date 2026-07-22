@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "share": "disabled",
+  "autoupdate": false,
+  "server": {
+    "hostname": "127.0.0.1"
+  },
+  "permission": {
+    "external_directory": "deny"
+  }
+}

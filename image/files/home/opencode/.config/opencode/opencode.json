@@ -1,0 +1,91 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "git": {
+      "type": "local",
+      "command": ["uvx", "mcp-server-git", "--repository", "/workspace"],
+      "enabled": true,
+      "timeout": 15000
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@latest", "--headless"],
+      "enabled": false,
+      "timeout": 30000
+    },
+    "github": {
+      "type": "remote",
+      "url": "{env:GITHUB_MCP_URL}",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_MCP_TOKEN}"
+      },
+      "enabled": false,
+      "timeout": 15000
+    },
+    "gitea": {
+      "type": "remote",
+      "url": "{env:GITEA_MCP_URL}",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:GITEA_MCP_TOKEN}"
+      },
+      "enabled": false,
+      "timeout": 15000
+    },
+    "nextcloud": {
+      "type": "remote",
+      "url": "{env:NEXTCLOUD_MCP_URL}",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:NEXTCLOUD_MCP_TOKEN}"
+      },
+      "enabled": false,
+      "timeout": 30000
+    },
+    "joomla": {
+      "type": "remote",
+      "url": "{env:JOOMLA_MCP_URL}",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:JOOMLA_MCP_TOKEN}"
+      },
+      "enabled": false,
+      "timeout": 30000
+    },
+    "jcb": {
+      "type": "remote",
+      "url": "{env:JCB_MCP_URL}",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:JCB_MCP_TOKEN}"
+      },
+      "enabled": false,
+      "timeout": 30000
+    },
+    "speech_to_text": {
+      "type": "remote",
+      "url": "{env:STT_MCP_URL}",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:STT_MCP_TOKEN}"
+      },
+      "enabled": false,
+      "timeout": 60000
+    }
+  },
+  "provider": {
+    "vdm-local": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "VDM Local Llama",
+      "options": {
+        "baseURL": "{env:VDM_LOCAL_LLM_BASE_URL}"
+      },
+      "models": {
+        "local-model": {
+          "name": "Local model"
+        }
+      }
+    }
+  }
+}

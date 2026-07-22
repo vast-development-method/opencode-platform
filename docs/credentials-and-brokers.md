@@ -1,0 +1,45 @@
+# Credentials and brokers
+
+## Initial mode
+
+`start-session.sh` injects environment values into one OpenCode process and redirects OpenCode's data directory to
+guest tmpfs. On exit it deletes that guest runtime directory.
+
+This reduces persistence but does not hide a token from the agent process. Therefore all injected tokens must be:
+
+- short-lived;
+- narrowly scoped;
+- revocable;
+- budget-limited where applicable;
+- unusable outside approved services.
+
+## Corporate mode
+
+A trusted broker host should retain long-lived upstream credentials and expose only capabilities:
+
+- LLM gateway virtual keys with model, rate and spend limits;
+- GitHub/Gitea MCP sessions limited to selected repositories and operations;
+- Nextcloud MCP sessions limited to selected users, apps and tagged folders;
+- Joomla/JCB MCP sessions defaulting to read-only or non-destructive toolsets.
+
+The VM must never receive a Vaultwarden or OpenBao identity capable of reading all upstream secrets.
+
+## OpenBao
+
+OpenBao is suitable for machine identity, short leases, revocation and audit. The agent should not query secret
+paths directly. A broker exchanges an OpenBao-authenticated service identity for downstream capability tokens.
+
+## Vaultwarden
+
+Vaultwarden remains useful for human-controlled bootstrap and recovery secrets. Do not give the autonomous VM a
+universal Vaultwarden account.
+
+## Runtime file
+
+Create it under host tmpfs:
+
+```bash
+./scripts/create-runtime-env.sh INSTANCE
+```
+
+The script refuses to use a file not protected by mode `0600`.

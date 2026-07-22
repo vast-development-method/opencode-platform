@@ -1,0 +1,32 @@
+name: Build Incus images
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: [self-hosted, linux, incus]
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [base, php, python, cpp, typescript, full]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate
+        run: ./tests/validate-repository.sh
+      - name: Apply Incus platform
+        run: ./scripts/apply-incus.sh
+      - name: Build image
+        run: ./scripts/build-image.sh "${{ matrix.variant }}"
+      - name: Package image
+        run: ./scripts/package-image.sh "${{ matrix.variant }}"
+      - name: Publish Gitea Generic Package
+        if: startsWith(gitea.ref, 'refs/tags/v')
+        env:
+          GITEA_PACKAGE_OWNER: ${{ vars.GITEA_PACKAGE_OWNER }}
+          GITEA_PACKAGE_USER: ${{ vars.GITEA_PACKAGE_USER }}
+          GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
+        run: ./scripts/publish-gitea-package.sh "${{ matrix.variant }}"

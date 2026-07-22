@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vdm.dev/schemas/opencode-session-policy.json",
+  "title": "VDM OpenCode session capability policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["session", "expires_at", "models", "repositories", "mcp"],
+  "properties": {
+    "session": {"type": "string", "minLength": 16},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "models": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "repositories": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "mcp": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "budget_usd": {"type": "number", "minimum": 0},
+    "allow_push": {"type": "boolean", "default": false},
+    "allow_protected_branches": {"const": false}
+  }
+}

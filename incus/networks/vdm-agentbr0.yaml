@@ -1,0 +1,6 @@
+description: Runtime network for VDM OpenCode VMs
+config:
+  ipv4.address: 10.248.18.1/24
+  ipv4.nat: "true"
+  ipv4.dhcp: "true"
+  ipv6.address: none

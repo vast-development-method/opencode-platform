@@ -1,0 +1,62 @@
+schema: 1
+reviewed_on: 2026-07-17
+servers:
+  git:
+    status: enabled
+    trust: model-context-protocol-project
+    transport: stdio
+    source: https://github.com/modelcontextprotocol/servers/tree/main/src/git
+    package: mcp-server-git
+    note: Early development; restrict repository path to /workspace.
+  github:
+    status: ready-disabled
+    trust: first-party
+    transport: remote-or-stdio
+    source: https://github.com/github/github-mcp-server
+    default_remote_url: https://api.githubcopilot.com/mcp/
+    note: Enable only selected toolsets and use a short-lived or fine-grained identity.
+  gitea:
+    status: ready-disabled
+    trust: first-party
+    transport: remote-or-stdio
+    source: https://gitea.com/gitea/gitea-mcp
+    default_authority: https://git.vdm.dev
+    note: Pin an audited release before enabling in company images.
+  nextcloud:
+    status: candidate-disabled
+    trust: community
+    transport: remote-preferred
+    source: https://github.com/cbcoutinho/nextcloud-mcp-server
+    default_authority: https://nextcloud.example.invalid
+    note: Strong candidate with broad app coverage; audit and pin before adoption.
+  playwright:
+    status: enabled-on-web-images
+    trust: first-party
+    transport: stdio
+    source: https://github.com/microsoft/playwright-mcp
+    package: "@playwright/mcp"
+    note: Prefer Playwright CLI plus skills for high-throughput deterministic test suites; keep MCP for exploratory QA.
+  joomla_mcp4joomla:
+    status: candidate-disabled
+    trust: community
+    transport: stdio
+    source: https://github.com/nikosdion/joomla-mcp-php
+    note: Very broad Joomla API coverage and category/read-only filtering.
+  joomla_component:
+    status: candidate-disabled
+    trust: community
+    transport: remote
+    source: https://github.com/OnepointConsultingLtd/joomla-mcp-server
+    note: Joomla component with HTTP endpoint, rate limiting, allow-listing and deliberately limited high-risk tools.
+  jcb:
+    status: internal-unfinished
+    trust: internal
+    transport: remote-preferred
+    source: TODO
+    note: Keep disabled until protocol, permissions, tests and release process are approved.
+  speech_to_text:
+    status: optional
+    trust: internal-endpoint
+    transport: command-or-remote
+    source: internal OpenAI-compatible transcription endpoint
+    note: Host microphone capture should remain outside the VM; inject only transcribed text.

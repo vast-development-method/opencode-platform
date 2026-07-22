@@ -1,0 +1,6 @@
+description: Baseline runtime ACL; strict egress must be enforced by the company gateway or firewall
+config: {}
+ingress: []
+egress:
+  - action: allow
+    description: Transitional allow rule; replace with gateway-only destinations before production

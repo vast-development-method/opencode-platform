@@ -1,0 +1,19 @@
+description: C and C++ OpenCode VM
+config:
+  limits.cpu: "12"
+  limits.memory: 24GiB
+  security.secureboot: "true"
+  user.vdm.variant: cpp
+devices:
+  root:
+    type: disk
+    path: /
+    pool: default
+    size: 140GiB
+  eth0:
+    type: nic
+    name: eth0
+    network: vdm-agentbr0
+    security.acls: vdm-agent-runtime
+    security.acls.default.ingress.action: reject
+    security.acls.default.egress.action: allow
