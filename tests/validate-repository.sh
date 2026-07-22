@@ -10,7 +10,9 @@ done < <(find "$ROOT_DIR" -type f -name '*.sh' -print0)
 
 if command -v shellcheck >/dev/null 2>&1; then
     mapfile -d '' scripts < <(find "$ROOT_DIR" -type f -name '*.sh' -print0)
-    shellcheck -x "${scripts[@]}" || fail=1
+    if (("${#scripts[@]}" > 0)); then
+        shellcheck -x "${scripts[@]}" || fail=1
+    fi
 fi
 
 while IFS= read -r -d '' json; do
@@ -18,8 +20,14 @@ while IFS= read -r -d '' json; do
 done < <(find "$ROOT_DIR" -type f -name '*.json' -print0)
 
 if command -v yamllint >/dev/null 2>&1; then
-    yamllint -d '{extends: default, rules: {line-length: disable, truthy: disable, document-start: disable}}' \
-        "$ROOT_DIR/incus" "$ROOT_DIR/manifest" "$ROOT_DIR/broker" "$ROOT_DIR/.gitea" || fail=1
+    yaml_paths=()
+    for path in incus manifest broker .github .gitea; do
+        [ -e "$ROOT_DIR/$path" ] && yaml_paths+=("$ROOT_DIR/$path")
+    done
+    if (("${#yaml_paths[@]}" > 0)); then
+        yamllint -d '{extends: default, rules: {line-length: disable, truthy: disable, document-start: disable}}' \
+            "${yaml_paths[@]}" || fail=1
+    fi
 fi
 
 if grep -RIE \
