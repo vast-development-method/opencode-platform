@@ -1,0 +1,6 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: Python services, MCP servers, automation, and data tooling.
+config:
+  security.secureboot: 'true'
+  user.vdm.variant: python
+devices: {}

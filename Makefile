@@ -1,23 +1,22 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: help validate bootstrap apply-incus build-base build-php build-python build-cpp build-typescript build-full build-all local-release
+.PHONY: help validate generate bootstrap apply-incus build build-all local-release
 
 help:
 	@printf '%s\n' \
-	  'make validate          Validate repository syntax and secret hygiene' \
-	  'make bootstrap         Install host prerequisites and initialise Incus' \
-	  'make apply-incus       Apply project, networks, ACL and profiles' \
-	  'make build-base        Build the base image' \
-	  'make build-php         Build the PHP/Joomla image' \
-	  'make build-python      Build the Python image' \
-	  'make build-cpp         Build the C/C++ image' \
-	  'make build-typescript  Build the TypeScript/browser image' \
-	  'make build-full        Build the full mixed-language image' \
-	  'make build-all         Build every image variant' \
+	  'make validate          Validate repository syntax, generated state and security contracts' \
+	  'make generate          Regenerate all derived platform files from manifest/images.yaml' \
+	  'make bootstrap         Install host prerequisites, Incus and the TTL reaper' \
+	  'make apply-incus       Apply restricted project, networks, ACLs and profiles' \
+	  'make build IMAGE=php   Build one manifest-defined image' \
+	  'make build-all         Build every release-enabled image' \
 	  'make local-release     Build, package, verify and optionally publish locally'
 
 validate:
 	./tests/validate-repository.sh
+
+generate:
+	python3 ./scripts/generate-platform.py --write
 
 bootstrap:
 	./scripts/bootstrap-host.sh
@@ -25,23 +24,9 @@ bootstrap:
 apply-incus:
 	./scripts/apply-incus.sh
 
-build-base:
-	./scripts/build-image.sh base
-
-build-php:
-	./scripts/build-image.sh php
-
-build-python:
-	./scripts/build-image.sh python
-
-build-cpp:
-	./scripts/build-image.sh cpp
-
-build-typescript:
-	./scripts/build-image.sh typescript
-
-build-full:
-	./scripts/build-image.sh full
+build:
+	@test -n "$(IMAGE)" || { printf 'IMAGE is required (for example: make build IMAGE=php)\n' >&2; exit 2; }
+	./scripts/build-image.sh "$(IMAGE)"
 
 build-all:
 	./scripts/build-all-images.sh

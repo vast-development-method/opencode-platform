@@ -32,7 +32,9 @@ export LOCAL_BUILD_VARIANTS='php,typescript,full'
 ./scripts/local-image-release.sh
 ```
 
-Packages remain under `build/packages/<version>/<variant>/`. Every package contains the Incus export, `manifest.json`, and `SHA256SUMS`; the release script verifies the checksums before it succeeds.
+Packages remain under `build/packages/<version>/<architecture>/<variant>/`.
+Every package contains the Incus export, manifest, provenance and checksums;
+release mode additionally requires an SBOM, vulnerability scan and signature.
 
 ## Publish directly to Gitea
 
@@ -61,7 +63,7 @@ For a reproducible production release, build the exact protected tag and require
 
 ```bash
 git fetch --tags --prune origin
-git switch --detach v0.2.0
+git switch --detach v0.3.0-rc.1
 
 export LOCAL_BUILD_VARIANTS=all
 export LOCAL_REQUIRE_CLEAN=true
@@ -79,7 +81,7 @@ export GITEA_PACKAGE_TOKEN
 unset GITEA_PACKAGE_TOKEN
 ```
 
-Replace `v0.2.0` with the version being released. Tags must not be recreated or force-moved after packages are published.
+Replace `v0.3.0-rc.1` with the version being released. Tags must not be recreated or force-moved after packages are published.
 
 ## Supported environment variables
 

@@ -1,0 +1,6 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: Native C and C++ systems, graphics, and Linux tooling.
+config:
+  security.secureboot: 'true'
+  user.vdm.variant: cpp
+devices: {}

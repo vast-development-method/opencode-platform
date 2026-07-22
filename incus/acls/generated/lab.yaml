@@ -1,0 +1,7 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: 'VDM generated egress policy: lab'
+config: {}
+ingress: []
+egress:
+- action: allow
+  description: Experimental lab egress

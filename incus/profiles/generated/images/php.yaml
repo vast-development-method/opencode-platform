@@ -1,0 +1,6 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: Joomla, JCB, PHP, TypeScript, database, and browser work.
+config:
+  security.secureboot: 'true'
+  user.vdm.variant: php
+devices: {}

@@ -1,24 +1,29 @@
 model_list:
   - model_name: openai-default
     litellm_params:
-      model: openai/REPLACE_WITH_APPROVED_MODEL
+      model: os.environ/OPENAI_MODEL
       api_key: os.environ/OPENAI_API_KEY
 
   - model_name: anthropic-default
     litellm_params:
-      model: anthropic/REPLACE_WITH_APPROVED_MODEL
+      model: os.environ/ANTHROPIC_MODEL
       api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: gemini-default
+    litellm_params:
+      model: os.environ/GEMINI_MODEL
+      api_key: os.environ/GEMINI_API_KEY
 
   - model_name: xai-default
     litellm_params:
-      model: xai/REPLACE_WITH_APPROVED_MODEL
+      model: os.environ/XAI_MODEL
       api_key: os.environ/XAI_API_KEY
 
-  - model_name: local-llama
+  - model_name: local-default
     litellm_params:
-      model: openai/REPLACE_WITH_LOCAL_MODEL_ID
-      api_base: http://local-llm.internal:11434/v1
-      api_key: local
+      model: os.environ/LOCAL_MODEL
+      api_base: os.environ/LOCAL_OPENAI_BASE_URL
+      api_key: os.environ/LOCAL_OPENAI_API_KEY
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY

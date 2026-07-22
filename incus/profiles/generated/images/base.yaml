@@ -1,0 +1,6 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: General repository analysis, shell work, and documentation.
+config:
+  security.secureboot: 'true'
+  user.vdm.variant: base
+devices: {}

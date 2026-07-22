@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-LOCAL_RELEASE_ALL_VARIANTS=(base php python cpp typescript full)
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/common.sh"
+
+LOCAL_RELEASE_ALL_VARIANTS=("${PLATFORM_RELEASE_IMAGES[@]}")
 
 parse_variant_selection() {
     local raw_selection="${1-}"
@@ -36,13 +40,10 @@ parse_variant_selection() {
             return 0
         fi
 
-        case "$variant" in
-            base|php|python|cpp|typescript|full) ;;
-            *)
-                printf 'Unknown variant: %s\n' "$variant" >&2
-                return 2
-                ;;
-        esac
+        if ! variant_exists "$variant"; then
+            printf 'Unknown variant: %s\n' "$variant" >&2
+            return 2
+        fi
 
         if [[ -z "${seen[$variant]:-}" ]]; then
             output+=("$variant")

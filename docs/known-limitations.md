@@ -1,13 +1,26 @@
 # Known limitations
 
-- The repository has been statically validated, but the image build was not executed in this delivery environment
-  because nested Incus and external package downloads are unavailable here.
-- Ubuntu/Node/PHP system packages are resolved from the configured repositories at build time; their exact installed
-  versions are recorded inside each image manifest but are not yet sourced from a company snapshot mirror.
-- The Nextcloud candidate has not received a VDM security audit.
-- The VDM Joomla MCP and JCB MCP are intentionally not installed pending their first approved releases.
-- The reference broker does not yet implement the company MCP authorization gateway.
-- Incus ACLs currently provide inbound isolation but not strict DNS-aware outbound filtering.
-- GitHub image builds require a self-hosted runner labelled `self-hosted`, `linux`, `incus`. Gitea image builds
-  require a host runner labelled `incus:host`.
-- OpenCode config compatibility should be revalidated whenever OpenCode is upgraded.
+- Static and mocked validation is available, but the six real Incus images have
+  not yet been built in this delivery environment.
+- Ubuntu and Node packages still resolve from upstream repositories. The
+  NodeSource setup input is content-pinned, and release manifests record the
+  result, but a timestamped Ubuntu/package snapshot has not yet been enabled.
+- Syft, Grype and Cosign hooks fail closed in release mode, but a trusted
+  builder still needs those pinned tools and a short-lived OpenBao signing
+  identity.
+- AMD64 is the only promotable architecture. ARM64 identities are collision-safe
+  but remain disabled until native ARM64 build/import evidence exists.
+- Connected policy denies private, metadata and management IPv4 ranges while
+  retaining public Internet. Host-side DNS-aware Squid policy is still required
+  before brokered, restricted and release policies can be unblocked.
+- Session secrets no longer appear in Incus command arguments and the process
+  tree has a systemd-enforced TTL. The transitional session process still
+  exports scoped credentials to OpenCode and its children; the tokenless
+  root-owned relay remains a release gate.
+- OpenBao/LiteLLM policies and routes are defined but the external broker,
+  authorization gateway, audit device, unseal, backup and revocation tests are
+  not deployed by this repository.
+- GitHub/Gitea builds require owned hardware-virtualisation runners. A second
+  independent clean host is mandatory for redistribution evidence.
+- OpenCode configuration compatibility must be revalidated whenever OpenCode is
+  upgraded.

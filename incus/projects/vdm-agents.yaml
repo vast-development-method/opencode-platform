@@ -4,3 +4,16 @@ config:
   features.networks: "true"
   features.profiles: "true"
   features.storage.volumes: "true"
+  restricted: "true"
+  restricted.devices.disk: managed
+  restricted.devices.nic: managed
+  restricted.networks.access: vdm-buildbr0,vdm-agentbr0
+  restricted.devices.gpu: block
+  restricted.devices.infiniband: block
+  restricted.devices.pci: block
+  restricted.devices.proxy: block
+  restricted.devices.unix-block: block
+  restricted.devices.unix-char: block
+  restricted.devices.unix-hotplug: block
+  restricted.devices.usb: block
+  restricted.virtual-machines.lowlevel: block

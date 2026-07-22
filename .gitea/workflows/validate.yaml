@@ -18,7 +18,7 @@ jobs:
       - name: Install validation dependencies
         run: |
           apt-get update
-          apt-get install -y jq shellcheck yamllint
+          apt-get install -y jq python3-yaml shellcheck yamllint
 
       - name: Validate repository
         run: ./tests/validate-repository.sh

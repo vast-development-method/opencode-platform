@@ -24,23 +24,46 @@ apply_network() {
 apply_network "$INCUS_BUILD_NETWORK" "$ROOT_DIR/incus/networks/vdm-buildbr0.yaml"
 apply_network "$INCUS_RUNTIME_NETWORK" "$ROOT_DIR/incus/networks/vdm-agentbr0.yaml"
 
-if ! project_cmd network acl show "$INCUS_RUNTIME_ACL" >/dev/null 2>&1; then
-    project_cmd network acl create "$INCUS_RUNTIME_ACL"
-fi
-project_cmd network acl edit "$INCUS_RUNTIME_ACL" < "$ROOT_DIR/incus/acls/vdm-agent-runtime.yaml"
+apply_acl() {
+    local name="$1"
+    local file="$2"
+    if ! project_cmd network acl show "$name" >/dev/null 2>&1; then
+        project_cmd network acl create "$name"
+    fi
+    project_cmd network acl edit "$name" < "$file"
+}
 
-for variant in base php python cpp typescript full; do
-    profile="vdm-opencode-${variant}"
+apply_acl vdm-build "$ROOT_DIR/incus/acls/vdm-build.yaml"
+for policy_file in "$ROOT_DIR"/incus/acls/generated/*.yaml; do
+    policy="$(basename "$policy_file" .yaml)"
+    apply_acl "vdm-agent-$policy" "$policy_file"
+done
+
+apply_profile() {
+    local profile="$1"
+    local profile_file="$2"
     if ! project_cmd profile show "$profile" >/dev/null 2>&1; then
         project_cmd profile create "$profile"
     fi
 
-    profile_file="$ROOT_DIR/incus/profiles/${variant}.yaml"
     if [ -n "${INCUS_STORAGE_POOL:-}" ]; then
         sed "s/pool: default/pool: ${INCUS_STORAGE_POOL}/" "$profile_file" | project_cmd profile edit "$profile"
     else
         project_cmd profile edit "$profile" < "$profile_file"
     fi
+}
+
+for profile_file in "$ROOT_DIR"/incus/profiles/generated/images/*.yaml; do
+    name="$(basename "$profile_file" .yaml)"
+    apply_profile "vdm-opencode-$name" "$profile_file"
+done
+for profile_file in "$ROOT_DIR"/incus/profiles/generated/sizes/*.yaml; do
+    name="$(basename "$profile_file" .yaml)"
+    apply_profile "vdm-size-$name" "$profile_file"
+done
+for profile_file in "$ROOT_DIR"/incus/profiles/generated/policies/*.yaml; do
+    name="$(basename "$profile_file" .yaml)"
+    apply_profile "vdm-policy-$name" "$profile_file"
 done
 
 log "Incus project definition applied"

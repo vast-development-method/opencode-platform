@@ -1,0 +1,5 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: 'VDM generated egress policy: offline'
+config: {}
+ingress: []
+egress: []

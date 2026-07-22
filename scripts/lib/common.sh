@@ -3,6 +3,8 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck disable=SC1091
+source "$ROOT_DIR/manifest/generated/platform.env"
+# shellcheck disable=SC1091
 source "$ROOT_DIR/manifest/platform.env"
 # shellcheck disable=SC1091
 source "$ROOT_DIR/manifest/toolchain.env"
@@ -31,6 +33,23 @@ require_command() {
     command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
 }
 
+duration_to_seconds() {
+    local value="${1:?duration required}"
+    local amount
+    local suffix
+
+    [[ "$value" =~ ^([1-9][0-9]*)(s|m|h|d)?$ ]] ||
+        die "Invalid duration: $value (use seconds or a suffix: s, m, h, d)"
+    amount="${BASH_REMATCH[1]}"
+    suffix="${BASH_REMATCH[2]:-s}"
+    case "$suffix" in
+        s) printf '%s\n' "$amount" ;;
+        m) printf '%s\n' "$((amount * 60))" ;;
+        h) printf '%s\n' "$((amount * 3600))" ;;
+        d) printf '%s\n' "$((amount * 86400))" ;;
+    esac
+}
+
 incus_cmd() {
     if incus info >/dev/null 2>&1; then
         incus "$@"
@@ -56,12 +75,42 @@ wait_for_vm() {
 }
 
 variant_exists() {
-    case "$1" in
-        base|php|python|cpp|typescript|full) return 0 ;;
-        *) return 1 ;;
-    esac
+    [[ -n "${1:-}" && -v "PLATFORM_IMAGE_COMPONENTS[$1]" ]]
+}
+
+policy_exists() {
+    [[ -n "${1:-}" && -v "PLATFORM_POLICY_STATUS[$1]" ]]
+}
+
+size_exists() {
+    [[ -n "${1:-}" && -v "PLATFORM_SIZE_CPUS[$1]" ]]
+}
+
+image_has_component() {
+    local image="${1:?image required}"
+    local wanted="${2:?component required}"
+    local component
+
+    for component in ${PLATFORM_IMAGE_COMPONENTS[$image]}; do
+        [[ "$component" == "$wanted" ]] && return 0
+    done
+    return 1
+}
+
+canonical_architecture() {
+    local raw="${1:-$(uname -m)}"
+    [[ -v "PLATFORM_ARCH_ALIASES[$raw]" ]] || die "Unsupported architecture: $raw"
+    printf '%s\n' "${PLATFORM_ARCH_ALIASES[$raw]}"
 }
 
 image_alias() {
-    printf '%s-%s/%s' "$INCUS_IMAGE_PREFIX" "$1" "$PLATFORM_VERSION"
+    local variant="${1:?variant required}"
+    local architecture="${2:-$(canonical_architecture)}"
+    printf '%s-%s/%s-%s' "$INCUS_IMAGE_PREFIX" "$variant" "$PLATFORM_VERSION" "$architecture"
+}
+
+artifact_id() {
+    local variant="${1:?variant required}"
+    local architecture="${2:-$(canonical_architecture)}"
+    printf '%s-%s-%s-%s' "$INCUS_IMAGE_PREFIX" "$variant" "$PLATFORM_VERSION" "$architecture"
 }

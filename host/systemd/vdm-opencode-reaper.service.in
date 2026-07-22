@@ -1,0 +1,12 @@
+[Unit]
+Description=Stop expired VDM OpenCode agent VMs
+After=incus.service
+Requires=incus.service
+
+[Service]
+Type=oneshot
+ExecStart=@ROOT_DIR@/scripts/reap-expired-vms.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
