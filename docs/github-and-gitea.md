@@ -9,7 +9,11 @@ Gitea remains fully supported for source hosting, Actions, its first-party MCP a
 Do not make GitHub and Gitea independently writable authorities for the same branches. Choose one source of truth
 and mirror in one direction.
 
-## Local builder without GitHub Actions\n\nRun `scripts/local-image-release.sh` on the trusted Incus builder. It validates, builds, packages and verifies locally, and can upload directly to Gitea when `LOCAL_PUBLISH_GITEA=true`. See `docs/local-image-builds.md` for the exact environment variables and tagged production-release procedure. This is the simplest option for a builder behind a firewall because all network connections originate from the builder.\n\n## Recommended migration path back to Gitea
+## Local builder without GitHub Actions
+
+Run `scripts/local-image-release.sh` on the trusted Incus builder. It validates, builds, packages and verifies locally, and can upload directly to Gitea when `LOCAL_PUBLISH_GITEA=true`. See `docs/local-image-builds.md` for the exact environment variables and tagged production-release procedure. This is the simplest option for a builder behind a firewall because all network connections originate from the builder.
+
+## Recommended migration path back to Gitea
 
 1. Keep GitHub as the temporary writable authority while the first `0.2.x` images are proven.
 2. Create a private pull mirror in Gitea from
