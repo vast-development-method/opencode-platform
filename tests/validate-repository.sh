@@ -12,9 +12,15 @@ done < <(find "${find_args[@]}" -name '*.sh' -print0)
 
 if command -v shellcheck >/dev/null 2>&1; then
     mapfile -d '' scripts < <(find "${find_args[@]}" -name '*.sh' -print0)
-    if ((${#scripts[@]} > 0)); then
+    if (("${#scripts[@]}" > 0)); then
         shellcheck -x "${scripts[@]}" || fail=1
     fi
+fi
+
+bash "$ROOT_DIR/tests/variant-selection.sh" || fail=1
+
+if command -v make >/dev/null 2>&1; then
+    make -C "$ROOT_DIR" --dry-run help local-release >/dev/null || fail=1
 fi
 
 while IFS= read -r -d '' json; do
