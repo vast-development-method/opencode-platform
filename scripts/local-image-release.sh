@@ -4,8 +4,9 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/variant-selection.sh"
 
-ALL_VARIANTS=(base php python cpp typescript full)
 RAW_VARIANTS="${LOCAL_BUILD_VARIANTS:-all}"
 PUBLISH_GITEA="${LOCAL_PUBLISH_GITEA:-false}"
 REQUIRE_CLEAN="${LOCAL_REQUIRE_CLEAN:-true}"
@@ -23,26 +24,8 @@ PUBLISH_GITEA="$(normalize_bool "$PUBLISH_GITEA")"
 REQUIRE_CLEAN="$(normalize_bool "$REQUIRE_CLEAN")"
 REQUIRE_TAG="$(normalize_bool "$REQUIRE_TAG")"
 
-mapfile -t requested_variants < <(
-    printf '%s\n' "$RAW_VARIANTS" |
-        tr ', ' '\n\n' |
-        sed '/^$/d'
-)
-(("${#requested_variants[@]}" > 0)) || die "LOCAL_BUILD_VARIANTS selected no variants."
-
 variants=()
-declare -A seen=()
-for variant in "${requested_variants[@]}"; do
-    if [ "$variant" = all ]; then
-        variants=("${ALL_VARIANTS[@]}")
-        break
-    fi
-    variant_exists "$variant" || die "Unknown variant: $variant"
-    if [ -z "${seen[$variant]:-}" ]; then
-        variants+=("$variant")
-        seen["$variant"]=1
-    fi
-done
+parse_variant_selection "$RAW_VARIANTS" variants || die "Invalid LOCAL_BUILD_VARIANTS value."
 
 version_file="$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")"
 [ -n "$version_file" ] || die "VERSION is empty."
@@ -91,7 +74,7 @@ for variant in "${variants[@]}"; do
     "$SCRIPT_DIR/package-image.sh" "$variant" "$package_dir"
     (
         cd "$package_dir"
-        sha256sum --check SHA256SUMS
+        sha256sum --check --strict SHA256SUMS
     )
 
     if [ "$PUBLISH_GITEA" = true ]; then
