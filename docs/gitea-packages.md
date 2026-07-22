@@ -9,6 +9,8 @@
 
 ## Publish
 
+For a complete local build, verification, version check, and optional direct publication, use `scripts/local-image-release.sh`; see `docs/local-image-builds.md`. The lower-level commands below remain available for publishing an already-built variant.
+
 ```bash
 ./scripts/package-image.sh php
 
