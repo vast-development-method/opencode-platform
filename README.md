@@ -15,7 +15,7 @@ The repository is the authority. Incus images and Gitea packages are generated a
 - Runtime-only credential handling under the guest's `/run` tmpfs.
 - A reference external broker stack for OpenBao, an LLM gateway and a TLS reverse proxy.
 - Provider-correct GitHub Actions and Gitea Actions workflows.
-- Downloadable GitHub workflow artifacts and durable Gitea Generic Package publication.
+- Downloadable GitHub workflow artifacts, fully local image releases, and durable Gitea Generic Package publication.
 - Image sanitisation and secret-scanning tests.
 - Host-side voice recording and transcription through any OpenAI-compatible transcription endpoint.
 
@@ -88,6 +88,6 @@ Start with:
 - `docs/browser-testing.md`
 - `docs/credentials-and-brokers.md`
 - `docs/scaling-and-operations.md`
-- `docs/gitea-packages.md`
+- `docs/local-image-builds.md`\n- `docs/gitea-packages.md`
 - `docs/github-and-gitea.md`
 - `docs/backup-and-migration.md`
