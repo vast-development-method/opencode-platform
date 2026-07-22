@@ -41,12 +41,18 @@ install -d -o "$AGENT_USER" -g "$AGENT_USER" -m 0700 "$AGENT_HOME/.local/share/o
 install -d -m 0755 /etc/opencode /etc/vdm-opencode-platform
 
 if ! command -v node >/dev/null 2>&1 || [ "$(node --version | sed 's/^v//' | cut -d. -f1)" -lt 20 ]; then
-    curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR:-22}.x" | bash -
+    nodesource_setup="$(mktemp)"
+    trap 'rm -f "$nodesource_setup"' EXIT
+    curl --fail --silent --show-error --location \
+        "https://deb.nodesource.com/setup_${NODE_MAJOR:-22}.x" \
+        --output "$nodesource_setup"
+    printf '%s  %s\n' \
+        "${NODESOURCE_SETUP_SHA256:?NODESOURCE_SETUP_SHA256 is required}" \
+        "$nodesource_setup" | sha256sum --check --strict
+    bash "$nodesource_setup"
+    rm -f "$nodesource_setup"
+    trap - EXIT
     apt-get install -y --no-install-recommends nodejs
-fi
-
-if ! command -v uv >/dev/null 2>&1; then
-    curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 fi
 
 npm install --global "${OPENCODE_PACKAGE:?OPENCODE_PACKAGE is required}"
@@ -54,9 +60,9 @@ opencode_path="$(command -v opencode)"
 ln -sfn "$opencode_path" "$AGENT_HOME/.local/bin/opencode"
 
 sudo -u "$AGENT_USER" -H env \
-    UV_TOOL_BIN_DIR="$AGENT_HOME/.local/bin" \
-    UV_TOOL_DIR="$AGENT_HOME/.local/share/uv/tools" \
-    uv tool install --force "${GIT_MCP_PACKAGE:?GIT_MCP_PACKAGE is required}"
+    PIPX_HOME="$AGENT_HOME/.local/share/pipx" \
+    PIPX_BIN_DIR="$AGENT_HOME/.local/bin" \
+    pipx install --force "${GIT_MCP_PACKAGE:?GIT_MCP_PACKAGE is required}"
 
 test -x "$AGENT_HOME/.local/bin/opencode"
 test -x "$AGENT_HOME/.local/bin/mcp-server-git"
@@ -69,7 +75,7 @@ installed_opencode="$("$AGENT_HOME/.local/bin/opencode" --version | tr -d '[:spa
 }
 
 installed_git_mcp="$(sudo -u "$AGENT_USER" -H \
-    "$AGENT_HOME/.local/share/uv/tools/mcp-server-git/bin/python" -c \
+    "$AGENT_HOME/.local/share/pipx/venvs/mcp-server-git/bin/python" -c \
     'import importlib.metadata; print(importlib.metadata.version("mcp-server-git"))')"
 [ "$installed_git_mcp" = "$GIT_MCP_EXPECTED_VERSION" ] || {
     printf 'Git MCP version mismatch: expected %s, got %s\n' \

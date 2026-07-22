@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
 VARIANT="${1:-}"
-variant_exists "$VARIANT" || die "Variant must be one of: base php python cpp typescript full"
+variant_exists "$VARIANT" || die "Variant must be one of: ${PLATFORM_IMAGES[*]}"
 
 "$SCRIPT_DIR/apply-incus.sh"
 
@@ -18,10 +18,19 @@ cleanup() {
 trap cleanup EXIT
 
 log "Creating build VM $BUILD_NAME"
-project_cmd init "$INCUS_BASE_IMAGE" "$BUILD_NAME" --vm --profile "vdm-opencode-${VARIANT}"
+project_cmd init "$INCUS_BASE_IMAGE" "$BUILD_NAME" --vm \
+    --profile "vdm-opencode-${VARIANT}" \
+    --profile "vdm-size-${PLATFORM_IMAGE_DEFAULT_SIZE[$VARIANT]}" \
+    --profile "vdm-policy-${PLATFORM_IMAGE_DEFAULT_POLICY[$VARIANT]}"
 
 # Builders need the broader build network. Replace the profile NIC for this temporary VM.
-project_cmd config device override "$BUILD_NAME" eth0 network="$INCUS_BUILD_NETWORK" name=eth0
+project_cmd config device override "$BUILD_NAME" eth0 \
+    network="$INCUS_BUILD_NETWORK" \
+    name=eth0 \
+    security.acls=vdm-build \
+    security.acls.default.ingress.action=reject \
+    security.acls.default.egress.action=reject \
+    security.ipv4_filtering=true
 project_cmd start "$BUILD_NAME"
 wait_for_vm "$BUILD_NAME" || die "VM agent did not become ready: $BUILD_NAME"
 
@@ -33,6 +42,7 @@ tar -C "$ROOT_DIR/image/provision" -cf - . | project_cmd exec "$BUILD_NAME" -- t
 COMMON_ENV=(
     "AGENT_USER=$AGENT_USER"
     "NODE_MAJOR=$NODE_MAJOR"
+    "NODESOURCE_SETUP_SHA256=$NODESOURCE_SETUP_SHA256"
     "OPENCODE_PACKAGE=$OPENCODE_PACKAGE"
     "OPENCODE_EXPECTED_VERSION=$OPENCODE_EXPECTED_VERSION"
     "GIT_MCP_PACKAGE=$GIT_MCP_PACKAGE"
@@ -61,16 +71,10 @@ exec_with_env() {
 }
 
 exec_with_env bash /opt/vdm-build/common.sh
-case "$VARIANT" in
-    base) ;;
-    php)
-        exec_with_env bash /opt/vdm-build/php.sh
-        exec_with_env bash /opt/vdm-build/typescript.sh
-        ;;
-    python|cpp|typescript|full)
-        exec_with_env bash "/opt/vdm-build/${VARIANT}.sh"
-        ;;
-esac
+for component in ${PLATFORM_IMAGE_COMPONENTS[$VARIANT]}; do
+    provision="${PLATFORM_COMPONENT_PROVISION[$component]:-}"
+    [[ -z "$provision" ]] || exec_with_env bash "/opt/vdm-build/$provision"
+done
 
 project_cmd exec "$BUILD_NAME" \
     --env "PLATFORM_VERSION=$PLATFORM_VERSION" \
@@ -86,5 +90,6 @@ project_cmd publish "$BUILD_NAME/sanitized" --alias "$ALIAS" --reuse
 project_cmd image set-property "$ALIAS" org.vdm.platform "$PLATFORM_NAME"
 project_cmd image set-property "$ALIAS" org.vdm.version "$PLATFORM_VERSION"
 project_cmd image set-property "$ALIAS" org.vdm.variant "$VARIANT"
+project_cmd image set-property "$ALIAS" org.vdm.architecture "$(canonical_architecture)"
 
 log "Published $ALIAS"

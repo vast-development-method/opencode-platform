@@ -15,8 +15,16 @@ services:
     command: ["--config", "/etc/litellm/config.yaml", "--port", "4000"]
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:?Set an approved OpenAI provider/model route}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:?Set an approved Anthropic provider/model route}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:?Set an approved Gemini provider/model route}
       XAI_API_KEY: ${XAI_API_KEY:-}
+      XAI_MODEL: ${XAI_MODEL:?Set an approved xAI provider/model route}
+      LOCAL_MODEL: ${LOCAL_MODEL:?Set an approved local provider/model route}
+      LOCAL_OPENAI_BASE_URL: ${LOCAL_OPENAI_BASE_URL:?Set the local OpenAI-compatible endpoint}
+      LOCAL_OPENAI_API_KEY: ${LOCAL_OPENAI_API_KEY:-local}
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?Set a broker master key through secret injection}
     volumes:
       - ./config/litellm.yaml:/etc/litellm/config.yaml:ro

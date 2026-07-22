@@ -18,6 +18,12 @@ if command -v shellcheck >/dev/null 2>&1; then
 fi
 
 bash "$ROOT_DIR/tests/variant-selection.sh" || fail=1
+python3 "$ROOT_DIR/scripts/generate-platform.py" --check || fail=1
+python3 -m unittest "$ROOT_DIR/tests/test_platform_manifest.py" || fail=1
+python3 -m unittest "$ROOT_DIR/tests/security-static.py" || fail=1
+bash "$ROOT_DIR/tests/generated-platform.sh" || fail=1
+bash "$ROOT_DIR/tests/session-secret-transport.sh" || fail=1
+bash "$ROOT_DIR/tests/reaper.sh" || fail=1
 
 if command -v make >/dev/null 2>&1; then
     make -C "$ROOT_DIR" --dry-run help local-release >/dev/null || fail=1
@@ -56,6 +62,16 @@ fi
 
 if grep -RIE '\$\{\{[[:space:]]*github\.' "$ROOT_DIR/.gitea/workflows"; then
     printf 'A Gitea workflow contains a GitHub-only expression context.\n' >&2
+    fail=1
+fi
+
+if grep -RIE 'variant:[[:space:]]*\[' "$ROOT_DIR/.github/workflows" "$ROOT_DIR/.gitea/workflows"; then
+    printf 'A workflow contains a hand-maintained image matrix.\n' >&2
+    fail=1
+fi
+
+if grep -RIE 'curl[^|]*\|[[:space:]]*(bash|sh)' "$ROOT_DIR/image" "$ROOT_DIR/scripts"; then
+    printf 'A network-delivered script is executed without a pinned intermediate file.\n' >&2
     fail=1
 fi
 

@@ -19,6 +19,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     curl \
     incus \
     jq \
+    python3-yaml \
+    qemu-system \
     shellcheck \
     yamllint \
     zstd
@@ -35,4 +37,5 @@ if ! incus_cmd remote list --format csv | cut -d, -f1 | grep -qx images; then
 fi
 
 "$SCRIPT_DIR/apply-incus.sh"
+"$SCRIPT_DIR/install-host-units.sh"
 log "Host bootstrap complete"

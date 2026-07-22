@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+: "${CREDENTIALS_DIRECTORY:?systemd credential directory is required}"
+: "${VDM_SESSION_ID:?session id is required}"
+: "${VDM_AGENT_HOME:=/home/opencode}"
+: "${VDM_WORKSPACE_ROOT:=/workspace}"
+
+allowed_key() {
+    case "$1" in
+        VDM_LLM_GATEWAY_URL|VDM_LLM_GATEWAY_TOKEN|\
+        GITHUB_MCP_URL|GITHUB_MCP_TOKEN|\
+        GITEA_MCP_URL|GITEA_MCP_TOKEN|\
+        NEXTCLOUD_MCP_URL|NEXTCLOUD_MCP_TOKEN|\
+        JOOMLA_MCP_URL|JOOMLA_MCP_TOKEN|\
+        JCB_MCP_URL|JCB_MCP_TOKEN|\
+        STT_MCP_URL|STT_MCP_TOKEN|\
+        VDM_LOCAL_LLM_BASE_URL|VDM_LOCAL_LLM_MODEL) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+credential_file="$CREDENTIALS_DIRECTORY/session.env"
+while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+        ""|\#*) continue ;;
+        *=*)
+            key="${line%%=*}"
+            allowed_key "$key" || {
+                printf 'Rejected runtime credential key: %s\n' "$key" >&2
+                exit 2
+            }
+            export "$line"
+            ;;
+        *)
+            printf 'Invalid runtime credential line.\n' >&2
+            exit 2
+            ;;
+    esac
+done < "$credential_file"
+
+export HOME="$VDM_AGENT_HOME"
+export USER=opencode
+export LOGNAME=opencode
+export PATH="$VDM_AGENT_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
+export XDG_DATA_HOME="/run/vdm-opencode-$VDM_SESSION_ID/data"
+install -d -m 0700 "$XDG_DATA_HOME"
+cd "$VDM_WORKSPACE_ROOT"
+exec "$VDM_AGENT_HOME/.local/bin/opencode"

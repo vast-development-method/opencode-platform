@@ -58,6 +58,7 @@ fi
 
 "$ROOT_DIR/tests/validate-repository.sh"
 "$SCRIPT_DIR/ci/check-incus-runner.sh"
+architecture="$(canonical_architecture)"
 
 install -d -m 0750 "$ROOT_DIR/build"
 exec 9>"$ROOT_DIR/build/.local-release.lock"
@@ -70,7 +71,7 @@ for variant in "${variants[@]}"; do
     log "Building $variant"
     "$SCRIPT_DIR/build-image.sh" "$variant"
 
-    package_dir="$ROOT_DIR/build/packages/$PLATFORM_VERSION/$variant"
+    package_dir="$ROOT_DIR/build/packages/$PLATFORM_VERSION/$architecture/$variant"
     "$SCRIPT_DIR/package-image.sh" "$variant" "$package_dir"
     (
         cd "$package_dir"

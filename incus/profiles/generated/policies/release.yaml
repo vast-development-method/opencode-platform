@@ -1,0 +1,14 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: 'VDM network policy: release'
+config:
+  user.vdm.policy: release
+  user.vdm.policy.status: blocked
+devices:
+  eth0:
+    type: nic
+    name: eth0
+    network: vdm-agentbr0
+    security.acls: vdm-agent-release
+    security.acls.default.ingress.action: reject
+    security.acls.default.egress.action: reject
+    security.ipv4_filtering: 'true'

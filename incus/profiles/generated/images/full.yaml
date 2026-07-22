@@ -1,0 +1,6 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: Mixed-language platform engineering.
+config:
+  security.secureboot: 'true'
+  user.vdm.variant: full
+devices: {}

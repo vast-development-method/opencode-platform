@@ -1,0 +1,6 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: Node.js, TypeScript, frontend, and browser automation.
+config:
+  security.secureboot: 'true'
+  user.vdm.variant: typescript
+devices: {}

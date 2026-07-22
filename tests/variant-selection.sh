@@ -27,7 +27,7 @@ assert_rejected() {
     fi
 }
 
-assert_selection "all" "base php python cpp typescript full"
+assert_selection "all" "${PLATFORM_RELEASE_IMAGES[*]}"
 assert_selection "php,typescript,full" "php typescript full"
 assert_selection $'php  typescript\nfull' "php typescript full"
 assert_selection "php,php,full" "php full"

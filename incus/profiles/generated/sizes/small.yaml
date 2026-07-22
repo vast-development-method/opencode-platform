@@ -1,0 +1,11 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: 'VDM resource class: small'
+config:
+  limits.cpu: '4'
+  limits.memory: 8GiB
+devices:
+  root:
+    type: disk
+    path: /
+    pool: default
+    size: 80GiB

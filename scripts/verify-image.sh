@@ -26,6 +26,9 @@ project_cmd exec "$INSTANCE" -- test -f /etc/vdm-opencode-platform/build.json
 project_cmd exec "$INSTANCE" -- jq -e --arg variant "$VARIANT" '.variant == $variant' /etc/vdm-opencode-platform/build.json >/dev/null
 project_cmd exec "$INSTANCE" -- test ! -e "/home/$AGENT_USER/.local/share/opencode/auth.json"
 project_cmd exec "$INSTANCE" -- test ! -e "/home/$AGENT_USER/.local/share/opencode/mcp-auth.json"
+project_cmd exec "$INSTANCE" -- test ! -e /opt/vdm-build
+project_cmd exec "$INSTANCE" -- test ! -s /etc/machine-id
+project_cmd exec "$INSTANCE" -- bash -c '! compgen -G "/etc/ssh/ssh_host_*" >/dev/null'
 project_cmd exec "$INSTANCE" -- bash -c \
     '! find /home/opencode -xdev -type f \( -name "id_rsa*" -o -name "id_ed25519*" -o -name ".git-credentials" \) -print -quit | grep -q .'
 
@@ -37,9 +40,9 @@ assert_version \
 assert_version \
     "Git MCP" \
     "$GIT_MCP_EXPECTED_VERSION" \
-    "$(guest_output "/home/$AGENT_USER/.local/share/uv/tools/mcp-server-git/bin/python" -c 'import importlib.metadata; print(importlib.metadata.version("mcp-server-git"))' | tr -d '[:space:]')"
+    "$(guest_output "/home/$AGENT_USER/.local/share/pipx/venvs/mcp-server-git/bin/python" -c 'import importlib.metadata; print(importlib.metadata.version("mcp-server-git"))' | tr -d '[:space:]')"
 
-if [ "$VARIANT" = php ] || [ "$VARIANT" = typescript ] || [ "$VARIANT" = full ]; then
+if image_has_component "$VARIANT" browser; then
     assert_version \
         Playwright \
         "$PLAYWRIGHT_EXPECTED_VERSION" \
@@ -52,7 +55,12 @@ if [ "$VARIANT" = php ] || [ "$VARIANT" = typescript ] || [ "$VARIANT" = full ];
     project_cmd exec "$INSTANCE" -- test -d /opt/ms-playwright
 fi
 
-if [ "$VARIANT" = python ] || [ "$VARIANT" = full ]; then
+if image_has_component "$VARIANT" typescript; then
+    assert_version TypeScript "$TYPESCRIPT_EXPECTED_VERSION" "$(guest_output tsc --version | awk '{print $2}')"
+    assert_version TSX "$TSX_EXPECTED_VERSION" "$(guest_output tsx --version | awk 'NR == 1 {print $2}')"
+fi
+
+if image_has_component "$VARIANT" python; then
     assert_version Ruff "$RUFF_EXPECTED_VERSION" "$(guest_output "/home/$AGENT_USER/.local/bin/ruff" --version | awk '{print $2}')"
     assert_version mypy "$MYPY_EXPECTED_VERSION" "$(guest_output "/home/$AGENT_USER/.local/bin/mypy" --version | awk '{print $2}')"
 fi

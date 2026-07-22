@@ -11,30 +11,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Check out repository
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: Install manifest dependency
+        run: apt-get update && apt-get install -y python3-yaml
+      - name: Check generated platform files
+        run: python3 scripts/generate-platform.py --check
+      - name: Generate build matrix
+        id: matrix
+        run: printf 'matrix=%s\n' "$(python3 scripts/generate-platform.py --matrix gitea)" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: plan
     runs-on: incus
     timeout-minutes: 240
     strategy:
       fail-fast: false
       max-parallel: 1
-      matrix:
-        variant: [base, php, python, cpp, typescript, full]
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - name: Check out repository
         uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-
       - name: Validate repository
         run: ./tests/validate-repository.sh
-
       - name: Verify Incus build runner
-        run: ./scripts/ci/check-incus-runner.sh
-
+        run: |
+          ./scripts/ci/check-incus-runner.sh
+          ./scripts/ci/check-architecture.sh "${{ matrix.architecture }}"
       - name: Build image
         run: ./scripts/build-image.sh "${{ matrix.variant }}"
-
       - name: Package image
         run: ./scripts/package-image.sh "${{ matrix.variant }}"
-
       - name: Publish Gitea Generic Package
         if: ${{ startsWith(gitea.ref, 'refs/tags/v') }}
         env:

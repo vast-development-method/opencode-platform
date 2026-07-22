@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+if [ "${1:-}" = info ]; then
+    exit 0
+fi
+if [ "${1:-}" = --project ]; then
+    shift 2
+fi
+
+printf '%q ' "$@" >> "${MOCK_INCUS_LOG:?MOCK_INCUS_LOG is required}"
+printf '\n' >> "$MOCK_INCUS_LOG"
+
+case "${1:-}:${2:-}" in
+    list:--format)
+        cat "${MOCK_INCUS_LIST:?MOCK_INCUS_LIST is required for list}"
+        ;;
+    info:*|start:*|stop:*|config:set|config:unset|file:push|exec:*)
+        exit 0
+        ;;
+    *)
+        printf 'Unexpected session mock Incus invocation: %s\n' "$*" >&2
+        exit 1
+        ;;
+esac

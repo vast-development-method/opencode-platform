@@ -1,7 +1,11 @@
-# Internal platform notice
+# VDM OpenCode Platform notice
 
-This repository is an internal VDM platform definition. It intentionally contains no provider credentials,
-Git credentials, Vaultwarden credentials, OpenBao tokens, Nextcloud app passwords, Joomla API tokens,
-private SSH keys, or private source repositories.
+Copyright (C) 2026 Vast Development Method.
 
-Choose and add an explicit software licence before publishing this repository outside the company.
+The original repository source is licensed under GNU GPL version 3 only
+(`GPL-3.0-only`). Software installed into generated VM images retains its own
+copyright and licence; an image SBOM is the authority for redistributed
+third-party components.
+
+This repository intentionally contains no provider credentials, Git
+credentials, OpenBao tokens, private SSH keys, or private source repositories.

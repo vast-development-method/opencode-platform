@@ -19,7 +19,7 @@ jq -n \
   --arg built_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --arg os "$os_label" \
   --arg opencode "$(sudo -u "$AGENT_USER" -H "$AGENT_HOME/.local/bin/opencode" --version 2>/dev/null || true)" \
-  --arg git_mcp "$(sudo -u "$AGENT_USER" -H "$AGENT_HOME/.local/share/uv/tools/mcp-server-git/bin/python" -c 'import importlib.metadata; print(importlib.metadata.version("mcp-server-git"))' 2>/dev/null || true)" \
+  --arg git_mcp "$(sudo -u "$AGENT_USER" -H "$AGENT_HOME/.local/share/pipx/venvs/mcp-server-git/bin/python" -c 'import importlib.metadata; print(importlib.metadata.version("mcp-server-git"))' 2>/dev/null || true)" \
   --arg node "$(node --version 2>/dev/null || true)" \
   --arg php "$(php -r 'echo PHP_VERSION;' 2>/dev/null || true)" \
   --arg python "$(python3 --version 2>/dev/null || true)" \
@@ -51,6 +51,18 @@ rm -rf \
   "$AGENT_HOME/.bash_history"
 
 find "$AGENT_HOME" -type f \( -name '*.token' -o -name '*.secret' -o -name '.git-credentials' \) -delete
+cloud-init clean --logs --seed || true
+rm -f /etc/ssh/ssh_host_*
+rm -f /var/lib/systemd/random-seed
+rm -f /var/lib/dbus/machine-id
+: > /etc/machine-id
+journalctl --rotate >/dev/null 2>&1 || true
+journalctl --vacuum-time=1s >/dev/null 2>&1 || true
+rm -rf \
+  /var/log/journal/* \
+  /var/lib/cloud/instances/* \
+  /var/lib/dhcp/* \
+  /opt/vdm-build
 apt-get clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 chown -R "$AGENT_USER:$AGENT_USER" "$AGENT_HOME" /workspace

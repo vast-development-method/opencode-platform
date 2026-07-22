@@ -11,6 +11,8 @@ case "$command" in
     build) exec "$SCRIPT_DIR/build-image.sh" "$@" ;;
     build-all) exec "$SCRIPT_DIR/build-all-images.sh" "$@" ;;
     launch) exec "$SCRIPT_DIR/launch-vm.sh" "$@" ;;
+    launch-wizard) exec "$SCRIPT_DIR/launch-wizard.sh" "$@" ;;
+    list) exec "$SCRIPT_DIR/list-vms.sh" "$@" ;;
     session) exec "$SCRIPT_DIR/start-session.sh" "$@" ;;
     stop-session) exec "$SCRIPT_DIR/stop-session.sh" "$@" ;;
     runtime-env) exec "$SCRIPT_DIR/create-runtime-env.sh" "$@" ;;
@@ -30,6 +32,8 @@ occtl commands:
   build VARIANT
   build-all
   launch VARIANT INSTANCE
+  launch-wizard
+  list
   runtime-env INSTANCE
   session INSTANCE [RUNTIME_ENV_FILE]
   stop-session INSTANCE

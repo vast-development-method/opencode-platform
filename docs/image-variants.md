@@ -1,39 +1,48 @@
-# Image variants
+# Composable images, capabilities, policies and sizes
 
-## Common base
+`manifest/images.yaml` is the sole platform authority. Run
+`python3 scripts/generate-platform.py --write` after an intentional manifest
+change; validation fails when any derived profile, shell list, version or CI
+matrix is stale.
 
-Every image includes Git, OpenCode, Node.js, Python runtime support, `uv`, `jq`, shell tooling, the common agents,
-managed OpenCode policy and local Git MCP.
+## Release images
 
-Python is present in the base only because the Git MCP reference server is Python-based. The Python project image
-adds development and quality tooling.
+- `base`: shell-oriented analysis and documentation.
+- `php`: PHP/Joomla/JCB plus Node, TypeScript, browser and database clients.
+- `python`: Python development, quality tools and MCP services.
+- `cpp`: C/C++ compilers, debuggers, build tools and analysis.
+- `typescript`: Node, TypeScript, browser automation and Playwright MCP.
+- `full`: the union of the ready language and packaged capabilities.
 
-## PHP
+Java, Go and Rust are intentionally absent. Android is a planned capability
+whose future SDK may require a JDK internally; that will not create a general
+Java development image.
 
-Adds PHP CLI extensions, Composer and MariaDB client. It also adds Chromium and Playwright because Joomla and JCB
-work normally requires browser verification.
+## Build-time capabilities
 
-## Python
+Browser and database are ready composable components. Android, GPU, rootless
+containers, GUI, audio and security tooling are catalogued as planned so the
+schema can grow without inventing combinations or claiming unfinished support.
 
-Adds Python headers, pytest, Ruff and mypy.
+## Runtime policies
 
-## C/C++
+- `offline`: no egress.
+- `connected`: public Internet with private, management, link-local and
+  metadata networks rejected.
+- `brokered`, `restricted` and `release`: fail closed until the external
+  gateway/proxy is deployed and tested.
+- `lab`: experimental hardware policy requiring explicit acknowledgement.
 
-Adds Clang, clang-tidy, CMake, Ninja, GDB, LLDB, Valgrind, cppcheck and gcovr.
+## Resource sizes
 
-## TypeScript
+Tiny, small, medium, standard, large, xlarge and builder profiles are selected
+at VM launch. They are independent of image composition, avoiding a
+combinatorial image catalogue.
 
-Adds TypeScript, tsx, Playwright MCP, Playwright and Chromium.
+## Adding support
 
-## Full
-
-Adds every language toolchain and Java 21. Use this only when a repository genuinely needs the combined stack.
-
-## Adding a variant
-
-1. Add a provisioning script under `image/provision`.
-2. Add a profile under `incus/profiles`.
-3. Add the variant to `manifest/images.yaml`.
-4. Extend `variant_exists` and the build matrix.
-5. Add smoke tests.
-6. Build from a clean base and record the resulting tool versions.
+1. Add a component and dimension entry to `manifest/images.yaml`.
+2. Keep it `planned` until provisioning, pins and verification exist.
+3. Add the provisioning script and smoke/security tests.
+4. Mark it `ready`, include it in the intended image, regenerate and validate.
+5. Build, export, independently import and record promotion evidence.

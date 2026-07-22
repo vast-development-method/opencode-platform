@@ -1,0 +1,14 @@
+# Generated from manifest/images.yaml. Do not edit.
+description: 'VDM network policy: offline'
+config:
+  user.vdm.policy: offline
+  user.vdm.policy.status: ready
+devices:
+  eth0:
+    type: nic
+    name: eth0
+    network: vdm-agentbr0
+    security.acls: vdm-agent-offline
+    security.acls.default.ingress.action: reject
+    security.acls.default.egress.action: reject
+    security.ipv4_filtering: 'true'

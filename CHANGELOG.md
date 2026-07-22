@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0-rc.1 - 2026-07-22
+
+- Made `manifest/images.yaml` the schema-validated authority for composition,
+  architectures, policies, sizes, profiles and GitHub/Gitea matrices.
+- Added GPL-3.0-only licensing and Vast Development Method copyright ownership.
+- Added restricted Incus projects, public-only connected egress, offline and
+  fail-closed gateway policies, enforced session TTLs and VM expiry reaping.
+- Removed Java and split browser/database provisioning into reusable components.
+- Added architecture-safe artifacts, provenance, SBOM/Grype release gates,
+  OpenBao-backed Cosign hooks and upload-last Gitea completion markers.
+- Added OpenAI, Claude, Gemini, Grok and local gateway routes plus Git/VPS
+  capability-path documentation.
+- Added static manifest, security, drift, matrix and artifact tamper tests.
+
 ## 0.2.0 - 2026-07-22
 
 - Split GitHub and Gitea workflows so each uses its own expression context and runner model.

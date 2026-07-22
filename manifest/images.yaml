@@ -1,47 +1,222 @@
-schema: 1
-platform: vdm-opencode-platform
-version: 0.1.0
-base_image: images:ubuntu/24.04/cloud
-variants:
+schema: 2
+
+platform:
+  name: vdm-opencode-platform
+  version: 0.3.0-rc.1
+  image_prefix: vdm-opencode
+  base_image: images:ubuntu/24.04/cloud
+  architectures:
+    amd64:
+      aliases: [x86_64, amd64]
+      release: true
+    arm64:
+      aliases: [aarch64, arm64]
+      release: false
+  license: GPL-3.0-only
+  copyright:
+    holder: Vast Development Method
+    year: 2026
+
+components:
+  shell: {status: ready, provision: null}
+  php: {status: ready, provision: php.sh}
+  python: {status: ready, provision: python.sh}
+  node: {status: ready, provision: null}
+  typescript: {status: ready, provision: typescript.sh}
+  native: {status: ready, provision: cpp.sh}
+  browser: {status: ready, provision: browser.sh}
+  database: {status: ready, provision: database.sh}
+  android: {status: planned, provision: android.sh}
+  gpu: {status: planned, provision: null}
+  containers: {status: planned, provision: containers.sh}
+  gui: {status: planned, provision: gui.sh}
+  audio: {status: planned, provision: audio.sh}
+  security: {status: planned, provision: security.sh}
+
+dimensions:
+  languages:
+    shell:
+      label: Bash and POSIX shell
+      status: ready
+      requires: []
+      components: [shell]
+    php:
+      label: PHP
+      status: ready
+      requires: [shell]
+      components: [php]
+    python:
+      label: Python
+      status: ready
+      requires: [shell]
+      components: [python]
+    node:
+      label: Node.js
+      status: ready
+      requires: [shell]
+      components: [node]
+    typescript:
+      label: TypeScript
+      status: ready
+      requires: [node]
+      components: [typescript]
+    c:
+      label: C
+      status: ready
+      requires: [shell]
+      components: [native]
+    cpp:
+      label: C++
+      status: ready
+      requires: [c]
+      components: [native]
+
+  capabilities:
+    cpu:
+      label: CPU execution
+      phase: runtime
+      status: ready
+      components: []
+    browser:
+      label: Chromium and Playwright
+      phase: build
+      status: ready
+      components: [browser]
+    database:
+      label: Database clients
+      phase: build
+      status: ready
+      components: [database]
+    android:
+      label: Android SDK and device tooling
+      phase: build
+      status: planned
+      components: [android]
+    gpu:
+      label: GPU acceleration
+      phase: runtime
+      status: planned
+      components: [gpu]
+    containers:
+      label: Rootless container tooling
+      phase: both
+      status: planned
+      components: [containers]
+    gui:
+      label: Graphical application testing
+      phase: both
+      status: planned
+      components: [gui]
+    audio:
+      label: Audio capture and processing
+      phase: both
+      status: planned
+      components: [audio]
+    security:
+      label: Security analysis tooling
+      phase: build
+      status: planned
+      components: [security]
+
+  policies:
+    offline:
+      label: No network
+      status: ready
+      ingress: reject
+      egress: reject
+      credentials: none
+      require_gateway: false
+    brokered:
+      label: Broker-only network
+      status: blocked
+      ingress: reject
+      egress: reject
+      credentials: brokered
+      require_gateway: true
+    restricted:
+      label: Allowlisted network
+      status: blocked
+      ingress: reject
+      egress: reject
+      credentials: scoped
+      require_gateway: true
+    connected:
+      label: Public Internet with private networks denied
+      status: ready
+      ingress: reject
+      egress: allow
+      credentials: session
+      require_gateway: false
+    release:
+      label: Release publishing
+      status: blocked
+      ingress: reject
+      egress: reject
+      credentials: release
+      require_gateway: true
+    lab:
+      label: Privileged hardware lab
+      status: experimental
+      ingress: reject
+      egress: allow
+      credentials: none
+      require_gateway: false
+
+  sizes:
+    tiny: {cpus: 2, memory: 4GiB, disk: 40GiB}
+    small: {cpus: 4, memory: 8GiB, disk: 80GiB}
+    medium: {cpus: 6, memory: 12GiB, disk: 100GiB}
+    standard: {cpus: 8, memory: 16GiB, disk: 120GiB}
+    large: {cpus: 12, memory: 24GiB, disk: 160GiB}
+    xlarge: {cpus: 16, memory: 32GiB, disk: 240GiB}
+    builder: {cpus: 24, memory: 64GiB, disk: 500GiB}
+
+images:
   base:
-    alias: vdm-opencode-base
-    cpus: 4
-    memory: 8GiB
-    disk: 80GiB
-    purpose: General repository analysis and documentation.
-    browser_mcp: false
+    purpose: General repository analysis, shell work, and documentation.
+    status: ready
+    release: true
+    languages: [shell]
+    capabilities: [cpu]
+    default_policy: connected
+    default_size: small
   php:
-    alias: vdm-opencode-php
-    cpus: 8
-    memory: 16GiB
-    disk: 120GiB
-    purpose: Joomla, JCB, PHP and Composer projects.
-    browser_mcp: true
+    purpose: Joomla, JCB, PHP, TypeScript, database, and browser work.
+    status: ready
+    release: true
+    languages: [shell, php, node, typescript]
+    capabilities: [cpu, browser, database]
+    default_policy: connected
+    default_size: standard
   python:
-    alias: vdm-opencode-python
-    cpus: 8
-    memory: 16GiB
-    disk: 100GiB
-    purpose: Python services, MCP servers and automation.
-    browser_mcp: false
+    purpose: Python services, MCP servers, automation, and data tooling.
+    status: ready
+    release: true
+    languages: [shell, python]
+    capabilities: [cpu]
+    default_policy: connected
+    default_size: standard
   cpp:
-    alias: vdm-opencode-cpp
-    cpus: 12
-    memory: 24GiB
-    disk: 140GiB
-    purpose: Native C and C++ systems, graphics and Linux tooling.
-    browser_mcp: false
+    purpose: Native C and C++ systems, graphics, and Linux tooling.
+    status: ready
+    release: true
+    languages: [shell, c, cpp]
+    capabilities: [cpu]
+    default_policy: connected
+    default_size: large
   typescript:
-    alias: vdm-opencode-typescript
-    cpus: 8
-    memory: 16GiB
-    disk: 120GiB
-    purpose: TypeScript, Node.js, frontend and browser testing.
-    browser_mcp: true
+    purpose: Node.js, TypeScript, frontend, and browser automation.
+    status: ready
+    release: true
+    languages: [shell, node, typescript]
+    capabilities: [cpu, browser]
+    default_policy: connected
+    default_size: standard
   full:
-    alias: vdm-opencode-full
-    cpus: 16
-    memory: 32GiB
-    disk: 200GiB
     purpose: Mixed-language platform engineering.
-    browser_mcp: true
+    status: ready
+    release: true
+    languages: [shell, php, python, node, typescript, c, cpp]
+    capabilities: [cpu, browser, database]
+    default_policy: connected
+    default_size: xlarge

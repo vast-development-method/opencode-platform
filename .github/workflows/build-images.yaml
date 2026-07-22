@@ -14,39 +14,50 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Install manifest dependency
+        run: sudo apt-get update && sudo apt-get install -y python3-yaml
+      - name: Check generated platform files
+        run: python3 scripts/generate-platform.py --check
+      - name: Generate build matrix
+        id: matrix
+        run: printf 'matrix=%s\n' "$(python3 scripts/generate-platform.py --matrix github)" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: plan
     runs-on: [self-hosted, linux, incus]
     timeout-minutes: 240
     strategy:
       fail-fast: false
       max-parallel: 1
-      matrix:
-        variant: [base, php, python, cpp, typescript, full]
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
       - name: Validate repository
         run: ./tests/validate-repository.sh
-
       - name: Verify Incus build runner
-        run: ./scripts/ci/check-incus-runner.sh
-
+        run: |
+          ./scripts/ci/check-incus-runner.sh
+          ./scripts/ci/check-architecture.sh "${{ matrix.architecture }}"
       - name: Build image
         run: ./scripts/build-image.sh "${{ matrix.variant }}"
-
       - name: Package image
         run: ./scripts/package-image.sh "${{ matrix.variant }}"
-
       - name: Upload downloadable image package
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
-          name: vdm-opencode-${{ matrix.variant }}-${{ github.ref_name }}
-          path: build/packages/*/${{ matrix.variant }}/
+          name: vdm-opencode-${{ matrix.variant }}-${{ matrix.architecture }}-${{ github.ref_name }}
+          path: build/packages/*/${{ matrix.architecture }}/${{ matrix.variant }}/
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
-
       - name: Publish Gitea Generic Package
         if: ${{ startsWith(github.ref, 'refs/tags/v') && vars.GITEA_PUBLISH_ENABLED == 'true' }}
         env:

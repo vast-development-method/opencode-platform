@@ -92,3 +92,12 @@ Start with:
 - `docs/gitea-packages.md`
 - `docs/github-and-gitea.md`
 - `docs/backup-and-migration.md`
+
+## Licence and ownership
+
+Copyright (C) 2026 Vast Development Method.
+
+The original repository source is licensed under the GNU General Public
+License version 3 only (`GPL-3.0-only`). See `LICENSE` and `COPYRIGHT`.
+Generated images contain independently licensed third-party software whose
+licences are recorded by the release SBOM.
