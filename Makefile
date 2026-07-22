@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: help validate bootstrap apply-incus build-base build-php build-python build-cpp build-typescript build-full build-all
+.PHONY: help validate bootstrap apply-incus build-base build-php build-python build-cpp build-typescript build-full build-all local-release
 
 help:
 	@printf '%s\n' \
@@ -43,3 +43,4 @@ build-full:
 
 build-all:
 	./scripts/build-all-images.sh
+\nlocal-release:\n\t./scripts/local-image-release.sh\n
