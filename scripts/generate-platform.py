@@ -29,6 +29,13 @@ FORBIDDEN_LANGUAGES = {"go", "java", "rust"}
 VALID_STATUS = {"ready", "experimental", "planned", "blocked"}
 
 
+class IndentedDumper(yaml.SafeDumper):
+    """Emit block sequences indented beneath their mapping key."""
+
+    def increase_indent(self, flow: bool = False, indentless: bool = False) -> None:
+        return super().increase_indent(flow, False)
+
+
 class ManifestError(ValueError):
     """Raised when the manifest contract is invalid."""
 
@@ -244,7 +251,12 @@ def render_shell(data: Mapping[str, Any]) -> str:
 
 
 def yaml_text(value: Mapping[str, Any]) -> str:
-    return GENERATED_HEADER + yaml.safe_dump(value, sort_keys=False, default_flow_style=False)
+    return GENERATED_HEADER + yaml.dump(
+        value,
+        Dumper=IndentedDumper,
+        sort_keys=False,
+        default_flow_style=False,
+    )
 
 
 def image_profile(name: str, image: Mapping[str, Any]) -> str:

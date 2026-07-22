@@ -22,6 +22,8 @@ for row in "${rows[@]}"; do
     fi
     if ((expires <= NOW)); then
         log "Stopping expired agent VM $name"
+        # The single-quoted command is intentionally evaluated inside the guest.
+        # shellcheck disable=SC2016
         project_cmd exec "$name" -- bash -c \
             'systemctl list-units --type=service --all --no-legend "vdm-opencode-*.service" |
              awk "{print \$1}" | xargs -r systemctl stop' >/dev/null 2>&1 || true

@@ -19,11 +19,17 @@ JSON
 
 VDM_REAPER_NOW=200 "$ROOT_DIR/scripts/reap-expired-vms.sh"
 grep -E '^stop expired ' "$MOCK_INCUS_LOG" >/dev/null
-! grep -E '^stop (unexpired|malformed|no-expiry|already-stopped) ' "$MOCK_INCUS_LOG"
+if grep -E '^stop (unexpired|malformed|no-expiry|already-stopped) ' "$MOCK_INCUS_LOG"; then
+    printf 'Reaper stopped a VM that should have remained untouched.\n' >&2
+    exit 1
+fi
 
 # Simulate Incus state after the first stop and prove a second pass is a no-op.
 printf '[{"name":"expired","status":"Stopped","config":{}}]\n' > "$MOCK_INCUS_LIST"
 : > "$MOCK_INCUS_LOG"
 VDM_REAPER_NOW=200 "$ROOT_DIR/scripts/reap-expired-vms.sh"
-! grep -E '^stop ' "$MOCK_INCUS_LOG"
+if grep -E '^stop ' "$MOCK_INCUS_LOG"; then
+    printf 'Second reaper pass was not idempotent.\n' >&2
+    exit 1
+fi
 printf 'VM expiry reaper tests passed.\n'

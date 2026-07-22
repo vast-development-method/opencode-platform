@@ -90,6 +90,6 @@ project_cmd publish "$BUILD_NAME/sanitized" --alias "$ALIAS" --reuse
 project_cmd image set-property "$ALIAS" org.vdm.platform "$PLATFORM_NAME"
 project_cmd image set-property "$ALIAS" org.vdm.version "$PLATFORM_VERSION"
 project_cmd image set-property "$ALIAS" org.vdm.variant "$VARIANT"
-project_cmd image set-property "$ALIAS" org.vdm.architecture "$(canonical_architecture)"
+project_cmd image set-property "$ALIAS" org.vdm.architecture "$(canonical_architecture "$(uname -m)")"
 
 log "Published $ALIAS"

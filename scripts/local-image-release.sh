@@ -58,7 +58,7 @@ fi
 
 "$ROOT_DIR/tests/validate-repository.sh"
 "$SCRIPT_DIR/ci/check-incus-runner.sh"
-architecture="$(canonical_architecture)"
+architecture="$(canonical_architecture "$(uname -m)")"
 
 install -d -m 0750 "$ROOT_DIR/build"
 exec 9>"$ROOT_DIR/build/.local-release.lock"

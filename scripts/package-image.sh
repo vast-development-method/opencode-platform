@@ -91,6 +91,8 @@ if [ -n "${COSIGN_KEY:-}" ]; then
     rm -f "$tmp"
 fi
 
+checksums_file="$(mktemp)"
+trap 'rm -f "$checksums_file"' EXIT
 (
     cd "$OUTPUT_DIR"
     find . -type f \
@@ -98,9 +100,11 @@ fi
         ! -name SHA256SUMS.sigstore.json \
         -printf '%P\0' |
         LC_ALL=C sort -z |
-        xargs -0 sha256sum > SHA256SUMS
+        xargs -0 sha256sum > "$checksums_file"
 )
-chmod 0640 "$OUTPUT_DIR/SHA256SUMS"
+install -m 0640 "$checksums_file" "$OUTPUT_DIR/SHA256SUMS"
+rm -f "$checksums_file"
+trap - EXIT
 
 if [ -n "${COSIGN_KEY:-}" ]; then
     "$SCRIPT_DIR/sign-artifact.sh" "$OUTPUT_DIR"

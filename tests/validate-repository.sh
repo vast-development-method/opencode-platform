@@ -5,15 +5,23 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 fail=0
 
 find_args=("$ROOT_DIR" -type f -not -path "$ROOT_DIR/.git/*" -not -path "$ROOT_DIR/build/*")
+extra_shell=(
+    "$ROOT_DIR/image/files/usr/local/libexec/vdm-opencode-session"
+    "$ROOT_DIR/tests/fixtures/incus"
+    "$ROOT_DIR/tests/fixtures/session/incus"
+)
 
 while IFS= read -r -d '' script; do
     bash -n "$script" || fail=1
 done < <(find "${find_args[@]}" -name '*.sh' -print0)
+for script in "${extra_shell[@]}"; do
+    bash -n "$script" || fail=1
+done
 
 if command -v shellcheck >/dev/null 2>&1; then
     mapfile -d '' scripts < <(find "${find_args[@]}" -name '*.sh' -print0)
     if (("${#scripts[@]}" > 0)); then
-        shellcheck -x "${scripts[@]}" || fail=1
+        shellcheck -x "${scripts[@]}" "${extra_shell[@]}" || fail=1
     fi
 fi
 

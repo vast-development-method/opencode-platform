@@ -5,5 +5,5 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
 
 EXPECTED="${1:?Usage: $0 amd64|arm64}"
-ACTUAL="$(canonical_architecture)"
+ACTUAL="$(canonical_architecture "$(uname -m)")"
 [ "$ACTUAL" = "$EXPECTED" ] || die "Runner architecture mismatch: expected $EXPECTED, got $ACTUAL"

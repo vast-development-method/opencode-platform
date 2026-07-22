@@ -105,12 +105,12 @@ canonical_architecture() {
 
 image_alias() {
     local variant="${1:?variant required}"
-    local architecture="${2:-$(canonical_architecture)}"
+    local architecture="${2:-$(canonical_architecture "$(uname -m)")}"
     printf '%s-%s/%s-%s' "$INCUS_IMAGE_PREFIX" "$variant" "$PLATFORM_VERSION" "$architecture"
 }
 
 artifact_id() {
     local variant="${1:?variant required}"
-    local architecture="${2:-$(canonical_architecture)}"
+    local architecture="${2:-$(canonical_architecture "$(uname -m)")}"
     printf '%s-%s-%s-%s' "$INCUS_IMAGE_PREFIX" "$variant" "$PLATFORM_VERSION" "$architecture"
 }

@@ -10,8 +10,9 @@ REQUESTED_ALIAS="${2:-}"
 "$SCRIPT_DIR/verify-artifact.sh" "$PACKAGE_DIR"
 
 package_architecture="$(jq -r '.architecture' "$PACKAGE_DIR/manifest.json")"
-[ "$package_architecture" = "$(canonical_architecture)" ] ||
-    die "Package architecture $package_architecture does not match host $(canonical_architecture)"
+host_architecture="$(canonical_architecture "$(uname -m)")"
+[ "$package_architecture" = "$host_architecture" ] ||
+    die "Package architecture $package_architecture does not match host $host_architecture"
 
 mapfile -t payload_names < <(jq -r '.payload[].name' "$PACKAGE_DIR/manifest.json")
 metadata_files=()
@@ -29,7 +30,9 @@ done
 payload_files=("${metadata_files[@]}" "${data_files[@]}")
 
 alias_name="${REQUESTED_ALIAS:-$(jq -r '.image' "$PACKAGE_DIR/manifest.json")}"
-[ -n "$alias_name" ] && [ "$alias_name" != null ] || die "No image alias was supplied or recorded."
+if [ -z "$alias_name" ] || [ "$alias_name" = null ]; then
+    die "No image alias was supplied or recorded."
+fi
 project_cmd image show "$alias_name" >/dev/null 2>&1 && die "Image alias already exists: $alias_name"
 project_cmd image import "${payload_files[@]}" --alias "$alias_name"
 project_cmd image set-property "$alias_name" org.vdm.platform "$(jq -r '.platform' "$PACKAGE_DIR/manifest.json")"
