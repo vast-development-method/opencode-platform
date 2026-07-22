@@ -6,25 +6,48 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
+concurrency:
+  group: incus-images-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: [self-hosted, linux, incus]
+    timeout-minutes: 180
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         variant: [base, php, python, cpp, typescript, full]
     steps:
       - uses: actions/checkout@v4
-      - name: Validate
+
+      - name: Validate repository
         run: ./tests/validate-repository.sh
+
       - name: Apply Incus platform
         run: ./scripts/apply-incus.sh
+
       - name: Build image
         run: ./scripts/build-image.sh "${{ matrix.variant }}"
+
       - name: Package image
         run: ./scripts/package-image.sh "${{ matrix.variant }}"
+
+      - name: Upload downloadable image package
+        uses: actions/upload-artifact@v4
+        with:
+          name: vdm-opencode-${{ matrix.variant }}-${{ github.ref_name }}
+          path: build/packages/*/${{ matrix.variant }}/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
       - name: Publish Gitea Generic Package
-        if: startsWith(gitea.ref, 'refs/tags/v')
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && vars.GITEA_PUBLISH_ENABLED == 'true' }}
         env:
           GITEA_PACKAGE_OWNER: ${{ vars.GITEA_PACKAGE_OWNER }}
           GITEA_PACKAGE_USER: ${{ vars.GITEA_PACKAGE_USER }}
