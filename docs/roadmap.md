@@ -18,8 +18,8 @@
 
 ## Phase 3: Joomla and JCB
 
-- Complete Joomla MCP evaluation.
-- Define VDM Joomla MCP architecture.
+- Publish and audit the first `vast-development-method/joomla-mcp` release.
+- Pin and integrate only the VDM Joomla MCP implementation.
 - Complete JCB MCP protocol and test suite.
 - Add read-only pilot integrations.
 
