@@ -55,6 +55,31 @@ if image_has_component "$VARIANT" browser; then
     project_cmd exec "$INSTANCE" -- test -d /opt/ms-playwright
 fi
 
+if image_has_component "$VARIANT" joomla-mcp; then
+    assert_version \
+        "Joomla MCP" \
+        "$JOOMLA_MCP_EXPECTED_VERSION" \
+        "$(guest_output npm list --global --json --depth=0 | jq -r '.dependencies["@joomengine/joomla-mcp"].version')"
+    project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp
+    project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp-http
+    project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp-live-test
+    project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp-config-check
+    project_cmd exec "$INSTANCE" -- test -r /etc/joomla-mcp/sites.readonly.example.json
+    project_cmd exec "$INSTANCE" -- test ! -e /etc/joomla-mcp/sites.json
+    # shellcheck disable=SC2016
+    project_cmd exec "$INSTANCE" -- jq -e \
+        '.mcp.joomla.type == "local"
+         and .mcp.joomla.enabled == false
+         and .mcp.joomla.command[0] == "/usr/local/bin/vdm-joomla-mcp"
+         and .mcp.joomla.environment.JOOMLA_MCP_CONFIG == "/etc/joomla-mcp/sites.json"' \
+        "/home/$AGENT_USER/.config/opencode/opencode.json" >/dev/null
+else
+    project_cmd exec "$INSTANCE" -- test ! -x /usr/local/bin/vdm-joomla-mcp
+    # shellcheck disable=SC2016
+    project_cmd exec "$INSTANCE" -- jq -e '.mcp.joomla == null' \
+        "/home/$AGENT_USER/.config/opencode/opencode.json" >/dev/null
+fi
+
 if image_has_component "$VARIANT" typescript; then
     assert_version TypeScript "$TYPESCRIPT_EXPECTED_VERSION" "$(guest_output tsc --version | awk '{print $2}')"
     assert_version TSX "$TSX_EXPECTED_VERSION" "$(guest_output tsx --version | awk 'NR == 1 {print $2}')"

@@ -1,5 +1,5 @@
 schema: 1
-reviewed_on: 2026-07-22
+reviewed_on: 2026-07-27
 servers:
   git:
     status: enabled
@@ -8,6 +8,14 @@ servers:
     source: https://github.com/modelcontextprotocol/servers/tree/main/src/git
     package: mcp-server-git
     note: Early development; restrict repository path to /workspace.
+  joomla:
+    status: installed-disabled-on-php-images
+    trust: first-party
+    transport: stdio
+    source: https://github.com/joomengine/joomla-mcp
+    package: "@joomengine/joomla-mcp"
+    version: 0.7.0
+    note: Configure an HTTPS Joomla origin, inject only session credentials, and enable per instance.
   github:
     status: ready-disabled
     trust: first-party
@@ -44,10 +52,6 @@ servers:
     note: Host microphone capture should remain outside the VM; inject only transcribed text.
 
 deferred_integrations:
-  joomla:
-    status: not-installed
-    source: https://github.com/vast-development-method/joomla-mcp
-    activation_gate: Add only after the first VDM-reviewed release is available.
   jcb:
     status: not-installed
     activation_gate: Add only after the VDM repository and first reviewed release are available.

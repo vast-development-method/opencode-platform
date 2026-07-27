@@ -2,7 +2,7 @@ schema: 2
 
 platform:
   name: vdm-opencode-platform
-  version: 0.3.0-rc.1
+  version: 0.3.0-rc.2
   image_prefix: vdm-opencode
   base_image: images:ubuntu/24.04/cloud
   architectures:
@@ -26,6 +26,7 @@ components:
   native: {status: ready, provision: cpp.sh}
   browser: {status: ready, provision: browser.sh}
   database: {status: ready, provision: database.sh}
+  joomla-mcp: {status: ready, provision: joomla-mcp.sh}
   android: {status: planned, provision: android.sh}
   gpu: {status: planned, provision: null}
   containers: {status: planned, provision: containers.sh}
@@ -87,6 +88,11 @@ dimensions:
       phase: build
       status: ready
       components: [database]
+    joomla-mcp:
+      label: JoomEngine MCP for Joomla
+      phase: build
+      status: ready
+      components: [joomla-mcp]
     android:
       label: Android SDK and device tooling
       phase: build
@@ -181,11 +187,11 @@ images:
     default_policy: connected
     default_size: small
   php:
-    purpose: Joomla, JCB, PHP, TypeScript, database, and browser work.
+    purpose: Joomla, JCB, PHP, TypeScript, database, browser, and Joomla MCP work.
     status: ready
     release: true
     languages: [shell, php, node, typescript]
-    capabilities: [cpu, browser, database]
+    capabilities: [cpu, browser, database, joomla-mcp]
     default_policy: connected
     default_size: standard
   python:
@@ -213,10 +219,10 @@ images:
     default_policy: connected
     default_size: standard
   full:
-    purpose: Mixed-language platform engineering.
+    purpose: Mixed-language platform engineering with Joomla MCP support.
     status: ready
     release: true
     languages: [shell, php, python, node, typescript, c, cpp]
-    capabilities: [cpu, browser, database]
+    capabilities: [cpu, browser, database, joomla-mcp]
     default_policy: connected
     default_size: xlarge

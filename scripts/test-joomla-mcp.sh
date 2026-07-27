@@ -9,52 +9,47 @@ source "$SCRIPT_DIR/lib/runtime-credentials.sh"
 source "$SCRIPT_DIR/lib/joomla-mcp.sh"
 
 NAME="${1:-}"
-[ -n "$NAME" ] || die "Usage: $0 INSTANCE_NAME [HOST_RUNTIME_ENV_FILE] [TTL]"
+[ -n "$NAME" ] || die "Usage: $0 INSTANCE [HOST_RUNTIME_ENV_FILE] [SITE_ALIAS] [TTL]"
 HOST_ENV_FILE="${2:-/run/user/${UID}/vdm-opencode/${NAME}.env}"
-TTL="${3:-$DEFAULT_SESSION_TTL}"
+SITE_ALIAS="${3:-company}"
+TTL="${4:-30m}"
+(($# <= 4)) || die "Usage: $0 INSTANCE [HOST_RUNTIME_ENV_FILE] [SITE_ALIAS] [TTL]"
+[[ "$SITE_ALIAS" =~ ^[A-Za-z][A-Za-z0-9_-]{0,63}$ ]] ||
+    die "Unsafe Joomla site alias: $SITE_ALIAS"
 TTL_SECONDS="$(duration_to_seconds "$TTL")"
-((TTL_SECONDS >= 60 && TTL_SECONDS <= 86400)) ||
-    die "Session TTL must be between 60 seconds and 24 hours."
+((TTL_SECONDS >= 60 && TT_SECONDS <= 86400)) ||
+    die "Test TTL must be between 60 seconds and 24 hours."
 
 project_cmd info "$NAME" >/dev/null 2>&1 || die "Unknown instance: $NAME"
 project_cmd start "$NAME" >/dev/null 2>&1 || true
 wait_for_vm "$NAME" || die "VM agent did not become ready: $NAME"
-
-empty_env="$(mktemp)"
-trap 'rm -f "$empty_env"' EXIT
-chmod 0600 "$empty_env"
-if [ -f "$HOST_ENV_FILE" ]; then
-    validate_runtime_file "$HOST_ENV_FILE"
-else
-    HOST_ENV_FILE="$empty_env"
-fi
-
+[ -f "$HOST_ENV_FILE" ] || die "Runtime credential file does not exist: $HOST_ENV_FILE"
+validate_runtime_file "$HOST_ENV_FILE"
 validate_joomla_mcp_runtime_credentials "$NAME" "$HOST_ENV_FILE"
+joomla_mcp_enabled "$NAME" || die "Joomla MCP is not enabled in $NAME"
+project_cmd exec "$NAME" --mode=non-interactive -- \
+    jq -e --arg alias "$SITE_ALIAS" '.sites[$alias] != null' \
+    /etc/joomla-mcp/sites.json >/dev/null ||
+    die "Joomla site alias is not configured: $SITE_ALIAS"
 
 SESSION_ID="$(date +%s)-$$"
-UNIT="vdm-opencode-${SESSION_ID}"
+UNIT="vdm-joomla-read-test-${SESSION_ID}"
 GUEST_INPUT_DIR="/run/vdm-opencode-input"
 GUEST_CREDENTIAL="${GUEST_INPUT_DIR}/${SESSION_ID}.env"
-EXPIRES_EPOCH="$(($(date +%s) + TTL_SECONDS))"
+OUTPUT_DIR="$WORKSPACE_ROOT/.artifacts/joomla-mcp/${SESSION_ID}"
 
 cleanup() {
     project_cmd exec "$NAME" -- rm -f "$GUEST_CREDENTIAL" >/dev/null 2>&1 || true
     project_cmd exec "$NAME" -- rm -rf "/run/vdm-opencode-${SESSION_ID}" >/dev/null 2>&1 || true
-    project_cmd config unset "$NAME" user.vdm.session.id >/dev/null 2>&1 || true
-    project_cmd config unset "$NAME" user.vdm.session.expires_epoch >/dev/null 2>&1 || true
-    project_cmd exec "$NAME" -- rm -f \
-        "$AGENT_HOME/.local/share/opencode/auth.json" \
-        "$AGENT_HOME/.local/share/opencode/mcp-auth.json" >/dev/null 2>&1 || true
-    rm -f "$empty_env"
 }
 trap cleanup EXIT INT TERM
 
 project_cmd exec "$NAME" -- install -d -o root -g root -m 0700 "$GUEST_INPUT_DIR"
+project_cmd exec "$NAME" -- install -d -o "$AGENT_USER" -g "$AGENT_USER" -m 0750 \
+    "$WORKSPACE_ROOT/.artifacts" "$WORKSPACE_ROOT/.artifacts/joomla-mcp"
 project_cmd file push --mode 0600 --uid 0 --gid 0 "$HOST_ENV_FILE" "$NAME$GUEST_CREDENTIAL"
-project_cmd config set "$NAME" user.vdm.session.id "$SESSION_ID"
-project_cmd config set "$NAME" user.vdm.session.expires_epoch "$EXPIRES_EPOCH"
 
-log "Starting isolated OpenCode session in $NAME (TTL: ${TTL_SECONDS}s)"
+log "Running the non-mutating Joomla MCP read profile in $NAME"
 project_cmd exec "$NAME" -- systemd-run \
     --unit="$UNIT" \
     --service-type=exec \
@@ -80,10 +75,11 @@ project_cmd exec "$NAME" -- systemd-run \
     --property="RestrictSUIDSGID=yes" \
     --property="LoadCredential=session.env:$GUEST_CREDENTIAL" \
     --setenv="VDM_SESSION_ID=$SESSION_ID" \
-    --setenv="VDM_SESSION_MODE=opencode" \
+    --setenv="VDM_SESSION_MODE=joomla-read-test" \
     --setenv="VDM_AGENT_HOME=$AGENT_HOME" \
     --setenv="VDM_WORKSPACE_ROOT=$WORKSPACE_ROOT" \
-    --setenv="VDM_GITEA_BASE_URL=$GITEA_BASE_URL" \
-    --setenv="VDM_NEXTCLOUD_BASE_URL=$NEXTCLOUD_BASE_URL" \
-    --setenv="VDM_GITHUB_BASE_URL=$GITHUB_BASE_URL" \
+    --setenv="VDM_JOOMLA_SITE_ALIAS=$SITE_ALIAS" \
+    --setenv="VDM_JOOMLA_TEST_OUTPUT=$OUTPUT_DIR" \
     /usr/local/libexec/vdm-opencode-session
+
+log "Joomla MCP read evidence: $NAME$OUTPUT_DIR"

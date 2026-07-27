@@ -8,11 +8,11 @@ matrix is stale.
 ## Release images
 
 - `base`: shell-oriented analysis and documentation.
-- `php`: PHP/Joomla/JCB plus Node, TypeScript, browser and database clients.
+- `php`: PHP/Joomla/JCB plus Node, TypeScript, browser, database clients and JoomEngine MCP for Joomla.
 - `python`: Python development, quality tools and MCP services.
 - `cpp`: C/C++ compilers, debuggers, build tools and analysis.
 - `typescript`: Node, TypeScript, browser automation and Playwright MCP.
-- `full`: the union of the ready language and packaged capabilities.
+- `full`: the union of the ready language and packaged capabilities, including Joomla MCP.
 
 Java, Go and Rust are intentionally absent. Android is a planned capability
 whose future SDK may require a JDK internally; that will not create a general
@@ -20,9 +20,15 @@ Java development image.
 
 ## Build-time capabilities
 
-Browser and database are ready composable components. Android, GPU, rootless
-containers, GUI, audio and security tooling are catalogued as planned so the
-schema can grow without inventing combinations or claiming unfinished support.
+Browser, database and `joomla-mcp` are ready composable components. The Joomla
+capability installs an exact public npm release, stable local wrappers, a
+configuration validator and a disabled OpenCode stdio entry. It belongs only to
+the PHP and full images; adding it to another image requires an intentional
+manifest change and regenerated evidence.
+
+Android, GPU, rootless containers, GUI, audio and security tooling are
+catalogued as planned so the schema can grow without inventing combinations or
+claiming unfinished support.
 
 ## Runtime policies
 
@@ -32,6 +38,10 @@ schema can grow without inventing combinations or claiming unfinished support.
 - `brokered`, `restricted` and `release`: fail closed until the external
   gateway/proxy is deployed and tested.
 - `lab`: experimental hardware policy requiring explicit acknowledgement.
+
+A public HTTPS Joomla origin works with `connected`. A private Joomla origin
+does not; use an approved gateway policy or a deliberate lab environment
+instead of weakening the common ACL.
 
 ## Resource sizes
 

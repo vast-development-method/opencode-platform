@@ -15,8 +15,10 @@ case "$command" in
     list) exec "$SCRIPT_DIR/list-vms.sh" "$@" ;;
     session) exec "$SCRIPT_DIR/start-session.sh" "$@" ;;
     stop-session) exec "$SCRIPT_DIR/stop-session.sh" "$@" ;;
-    runtime-env) exec "$SCRIPT_DIR/create-runtime-env.sh" "$@" ;;
+    runtime-env|credentials) exec "$SCRIPT_DIR/create-runtime-env.sh" "$@" ;;
     mcp) exec "$SCRIPT_DIR/mcp-toggle.sh" "$@" ;;
+    joomla-configure) exec "$SCRIPT_DIR/configure-joomla-mcp.sh" "$@" ;;
+    joomla-test) exec "$SCRIPT_DIR/test-joomla-mcp.sh" "$@" ;;
     models) exec "$SCRIPT_DIR/configure-models.sh" "$@" ;;
     package) exec "$SCRIPT_DIR/package-image.sh" "$@" ;;
     import-package) exec "$SCRIPT_DIR/import-image-package.sh" "$@" ;;
@@ -34,10 +36,13 @@ occtl commands:
   launch VARIANT INSTANCE
   launch-wizard
   list
+  credentials INSTANCE
   runtime-env INSTANCE
-  session INSTANCE [RUNTIME_ENV_FILE]
+  session INSTANCE [RUNTIME_ENV_FILE] [TTL]
   stop-session INSTANCE
   mcp INSTANCE SERVER true|false
+  joomla-configure INSTANCE HTTPS_BASE_URL [SITE_ALIAS] [readonly|content|admin|full]
+  joomla-test INSTANCE [RUNTIME_ENV_FILE] [SITE_ALIAS] [TTL]
   models INSTANCE
   package VARIANT
   import-package DIRECTORY [IMAGE_ALIAS]

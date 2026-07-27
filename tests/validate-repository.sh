@@ -9,6 +9,7 @@ extra_shell=(
     "$ROOT_DIR/image/files/usr/local/libexec/vdm-opencode-session"
     "$ROOT_DIR/tests/fixtures/incus"
     "$ROOT_DIR/tests/fixtures/session/incus"
+    "$ROOT_DIR/tests/fixtures/joomla/incus"
 )
 
 while IFS= read -r -d '' script; do
@@ -30,6 +31,9 @@ python3 "$ROOT_DIR/scripts/generate-platform.py" --check || fail=1
 python3 -m unittest "$ROOT_DIR/tests/test_platform_manifest.py" || fail=1
 python3 -m unittest "$ROOT_DIR/tests/security-static.py" || fail=1
 bash "$ROOT_DIR/tests/generated-platform.sh" || fail=1
+bash "$ROOT_DIR/tests/joomla-mcp-integration.sh" || fail=1
+bash "$ROOT_DIR/tests/joomla-mcp-configure.sh" || fail=1
+bash "$ROOT_DIR/tests/runtime-credentials.sh" || fail=1
 bash "$ROOT_DIR/tests/session-secret-transport.sh" || fail=1
 bash "$ROOT_DIR/tests/reaper.sh" || fail=1
 
@@ -53,7 +57,13 @@ fi
 if grep -RIE --exclude-dir=.git --exclude-dir=build --exclude=validate-repository.sh \
     '(nikosdion/joomla-mcp-php|OnepointConsultingLtd/joomla-mcp-server|joomla_mcp4joomla|joomla_component_mcp)' \
     "$ROOT_DIR"; then
-    printf 'A non-VDM Joomla MCP reference is still present.\n' >&2
+    printf 'An unapproved third-party Joomla MCP reference is still present.\n' >&2
+    fail=1
+fi
+
+if grep -RIF --exclude-dir=.git --exclude-dir=build --exclude=validate-repository.sh \
+    'https://github.com/vast-development-method/joomla-mcp' "$ROOT_DIR"; then
+    printf 'The retired Joomla MCP repository location is still present.\n' >&2
     fail=1
 fi
 

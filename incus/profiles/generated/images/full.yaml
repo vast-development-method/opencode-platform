@@ -1,5 +1,5 @@
 # Generated from manifest/images.yaml. Do not edit.
-description: Mixed-language platform engineering.
+description: Mixed-language platform engineering with Joomla MCP support.
 config:
   security.secureboot: 'true'
   user.vdm.variant: full

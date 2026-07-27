@@ -33,11 +33,28 @@ class PlatformManifestTest(unittest.TestCase):
 
     def test_capability_policy_and_size_catalogs(self) -> None:
         dimensions = self.data["dimensions"]
-        self.assertTrue({"cpu", "browser", "database", "android", "gpu"} <= set(dimensions["capabilities"]))
+        self.assertTrue(
+            {"cpu", "browser", "database", "joomla-mcp", "android", "gpu"}
+            <= set(dimensions["capabilities"])
+        )
         self.assertGreaterEqual(len(dimensions["policies"]), 5)
         self.assertGreaterEqual(len(dimensions["sizes"]), 5)
         self.assertEqual("planned", dimensions["capabilities"]["android"]["status"])
         self.assertEqual("planned", dimensions["capabilities"]["gpu"]["status"])
+
+    def test_joomla_mcp_is_composable_and_php_scoped(self) -> None:
+        self.assertEqual(
+            {"status": "ready", "provision": "joomla-mcp.sh"},
+            self.data["components"]["joomla-mcp"],
+        )
+        capability = self.data["dimensions"]["capabilities"]["joomla-mcp"]
+        self.assertEqual("ready", capability["status"])
+        self.assertEqual(["joomla-mcp"], capabity["components"])
+
+        for image in ("php", "full"):
+            self.assertIn("joomla-mcp", self.data["images"][image]["capabilities"])
+        for image in ("base", "python", "cpp", "typescript"):
+            self.assertNotIn("joomla-mcp", self.data["images"][image]["capabilities"])
 
     def test_provider_matrices_are_identical_and_complete(self) -> None:
         outputs = []

@@ -17,9 +17,32 @@ case "$STATE" in true|false) ;; *) die "State must be true or false" ;; esac
 project_cmd exec "$NAME" --env "MCP_SERVER=$SERVER" --env "MCP_STATE=$STATE" -- bash -c '
 set -Eeuo pipefail
 config="/home/opencode/.config/opencode/opencode.json"
+jq -e --arg server "$MCP_SERVER" ".mcp[\$server] != null" "$config" >/dev/null || {
+    printf "Unknown MCP server: %s\n" "$MCP_SERVER" >&2
+    exit 1
+}
+
+if [ "$MCP_STATE" = true ]; then
+    server_type="$(jq -r --arg server "$MCP_SERVER" ".mcp[\$server].type" "$config")"
+    if [ "$server_type" = local ]; then
+        command_path="$(jq -r --arg server "$MCP_SERVER" ".mcp[\$server].command[0] // empty" "$config")"
+        [ -n "$command_path" ] && [ -x "$command_path" ] || {
+            printf "Local MCP executable is unavailable for %s: %s\n" "$MCP_SERVER" "$command_path" >&2
+            exit 1
+        }
+    fi
+    if [ "$MCP_SERVER" = joomla ]; then
+        test -r /etc/joomla-mcp/sites.json || {
+            printf "Configure the Joomla target before enabling Joomla MCP.\n" >&2
+            exit 1
+        }
+        /usr/local/bin/vdm-joomla-mcp-config-check /etc/joomla-mcp/sites.json
+    fi
+fi
+
 tmp="$(mktemp)"
 jq --arg server "$MCP_SERVER" --argjson state "$MCP_STATE" \
-  "if .mcp[\$server] == null then error(\"Unknown MCP server: \" + \$server) else .mcp[\$server].enabled = \$state end" \
+  ".mcp[\$server].enabled = \$state" \
   "$config" > "$tmp"
 install -o opencode -g opencode -m 0640 "$tmp" "$config"
 rm -f "$tmp"
