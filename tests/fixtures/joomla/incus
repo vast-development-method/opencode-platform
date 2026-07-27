@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+if [ "${1:-}" = info ]; then
+    exit 0
+fi
+if [ "${1:-}" = --project ]; then
+    shift 2
+fi
+
+case "${1:-}:${2:-}" in
+    info:*|start:*)
+        exit 0
+        ;;
+    file:push)
+        args=("$@")
+        source_index="$((${#args[@]} - 2))"
+        source_file="${args[$source_index]}"
+        cp "$source_file" "${CAPTURE_CONFIG:?CAPTURE_CONFIG is required}"
+        ;;
+    exec:*)
+        if [[ "$*" == *vdm-joomla-mcp-config-check* ]]; then
+            jq -e . "${CAPTURE_CONFIG:?CAPTURE_CONFIG is required}" >/dev/null
+        fi
+        exit 0
+        ;;
+    *)
+        printf 'Unexpected Joomla configure mock Incus invocation: %s\n' "$*" >&2
+        exit 1
+        ;;
+esac

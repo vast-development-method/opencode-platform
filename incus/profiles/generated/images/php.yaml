@@ -1,5 +1,5 @@
 # Generated from manifest/images.yaml. Do not edit.
-description: Joomla, JCB, PHP, TypeScript, database, and browser work.
+description: Joomla, JCB, PHP, TypeScript, database, browser, and Joomla MCP work.
 config:
   security.secureboot: 'true'
   user.vdm.variant: php

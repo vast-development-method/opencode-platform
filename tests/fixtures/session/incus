@@ -11,6 +11,11 @@ fi
 printf '%q ' "$@" >> "${MOCK_INCUS_LOG:?MOCK_INCUS_LOG is required}"
 printf '\n' >> "$MOCK_INCUS_LOG"
 
+# The generic session fixture represents an image where Joomla MCP is disabled.
+if [ "${1:-}" = exec ] && [[ "$*" == *'.mcp.joomla.enabled == true'* ]]; then
+    exit 1
+fi
+
 case "${1:-}:${2:-}" in
     list:--format)
         cat "${MOCK_INCUS_LIST:?MOCK_INCUS_LIST is required for list}"

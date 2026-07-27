@@ -10,7 +10,8 @@ export MOCK_INCUS_LIST="$tmp_dir/list.json"
 printf '[]\n' > "$MOCK_INCUS_LIST"
 runtime_file="$tmp_dir/runtime.env"
 sentinel="never-appear-in-incus-argv-7f3d9a"
-printf 'GITHUB_MCP_TOKEN=%s\n' "$sentinel" > "$runtime_file"
+printf 'GITHUB_MCP_TOKEN=%s\nJOOMLA_MCP_SITE_TOKEN=%s\n' \
+    "$sentinel" "$sentinel" > "$runtime_file"
 chmod 0600 "$runtime_file"
 
 "$ROOT_DIR/scripts/start-session.sh" test-vm "$runtime_file" 60s

@@ -1,103 +1,99 @@
 # VDM OpenCode Platform
 
-A company-wide, version-controlled platform definition for hardened OpenCode agent virtual machines on Incus.
+A version-controlled platform definition for hardened OpenCode agent virtual machines on Incus. The repository is the authority; Incus images and Gitea packages are generated artifacts.
 
-The repository is the authority. Incus images and Gitea packages are generated artifacts.
+## Images
 
-## What this repository provides
+The platform publishes six Ubuntu 24.04 image variants: `base`, `php`, `python`, `cpp`, `typescript`, and `full`. `manifest/images.yaml` is the single authority for composition, policies, sizes, architectures, profiles, and CI matrices.
 
-- A common Ubuntu 24.04 VM base and five image variants: `base`, `php`, `python`, `cpp`, `typescript`, and `full`.
-- Repeatable Incus projects, networks, ACL scaffolding, profiles, resource limits, image builds and launches.
-- OpenCode agents for orchestration, architecture, implementation, testing, review, security, browser QA,
-  documentation, PHP/Joomla, Python, C/C++, and TypeScript.
-- Local Git MCP and Playwright browser MCP integration.
-- Disabled-by-default remote MCP definitions for GitHub, Gitea, Nextcloud and speech-to-text.
-- Runtime-only credential handling under the guest's `/run` tmpfs.
-- A reference external broker stack for OpenBao, an LLM gateway and a TLS reverse proxy.
-- Provider-correct GitHub Actions and Gitea Actions workflows.
-- Downloadable GitHub workflow artifacts, fully local image releases, and durable Gitea Generic Package publication.
-- Image sanitisation and secret-scanning tests.
-- Host-side voice recording and transcription through any OpenAI-compatible transcription endpoint.
+The `php` and `full` images contain the exact public package `@joomengine/joomla-mcp@0.7.0`. Other images do not contain Joomla MCP. The integration is registered as a local stdio MCP server and remains disabled and unconfigured in every published image.
 
-## Recommended image strategy
-
-Use specialised images for normal work and the full image only when a project genuinely crosses languages.
-
-| Image | Primary use | Browser MCP |
-|---|---|---|
-| `base` | Repository analysis, documentation, light automation | Disabled |
-| `php` | Joomla, JCB and PHP services | Enabled |
-| `python` | APIs, automation, MCP services and data tooling | Disabled |
-| `cpp` | Native Linux, graphics and systems development | Disabled |
-| `typescript` | Web applications, Node.js and browser automation | Enabled |
-| `full` | Mixed-language platform work | Enabled |
-
-Every image inherits the same security policy and agent framework.
-
-## First deployment
+## Build and launch the PHP image
 
 ```bash
 cp .env.example .env
-# Edit only host settings here. Do not add secrets.
+# Edit only host settings. Do not add secrets.
 
 ./tests/validate-repository.sh
 ./scripts/bootstrap-host.sh
 ./scripts/apply-incus.sh
+
 export LOCAL_BUILD_VARIANTS=php
 ./scripts/local-image-release.sh
-./scripts/launch-vm.sh php opencode-llewellyn
-./scripts/start-session.sh opencode-llewellyn
+./scripts/launch-vm.sh php opencode-joomla
 ```
 
-Inside OpenCode, use `/connect` for ChatGPT Plus where supported by OpenCode. Anthropic subscription reuse is not
-configured: use an approved Anthropic API credential or the company LLM gateway. Grok should use the xAI API or
-company gateway. Local Llama uses the configured OpenAI-compatible local endpoint.
+An existing VM created from an older image does not gain newly installed packages. Launch or replace it from the new versioned PHP image.
 
-## Credentials
+## Configure Joomla MCP
 
-No long-lived credential belongs in an image.
+Configure one fixed public HTTPS Joomla origin. The default profile is read-only:
 
-`start-session.sh` creates a root-owned guest runtime directory under `/run/vdm-opencode-session`, sets
-`XDG_DATA_HOME` to that tmpfs location, injects only the current short-lived variables, launches OpenCode, and
-deletes the directory on exit. OpenCode provider and MCP OAuth material generated during that session therefore
-does not survive a clean VM stop.
+```bash
+./scripts/occtl.sh joomla-configure \
+  opencode-joomla \
+  https://www.example.com \
+  company \
+  readonly
+```
 
-For production, point the VM at a trusted external LLM/MCP gateway and issue short-lived, scoped session tokens.
+The command verifies that the VM contains Joomla MCP, rejects non-HTTPS origins and URLs containing credentials, paths, queries, or fragments, validates the generated configuration through the installed package, installs it atomically, and only then enables the local MCP entry.
 
-## Important limitations
+Available profiles are `readonly`, `content`, `admin`, and `full`. Start with `readonly`. Broader profiles do not override Joomla Web Services plugins, Joomla API-user permissions, Joomla ACL, or the package's guarded-write workflow. Indefinite grants remain disabled. The `full` profile uses a separate Joomla Update token.
 
-- The reference broker deployment is a scaffold, not a substitute for a security review.
-- Nextcloud MCP is community software and remains disabled until your team pins and audits a chosen implementation.
-- Joomla MCP is not installed. The only future integration target is
-  `vast-development-method/joomla-mcp`, after its first reviewed release.
-- JCB MCP is not installed and will be added only after the internal repository and first reviewed release exist.
-- Incus ACLs cannot safely express every hostname-based egress rule. Enforce strict outbound access at a proxy or
-  firewall that supports DNS-aware policy.
-- Incus packages are architecture-specific and must be produced by a trusted hardware-virtualisation runner.
+Prepare the per-instance runtime credential file:
+
+```bash
+runtime_file="$(./scripts/occtl.sh credentials opencode-joomla)"
+"${EDITOR:-nano}" "$runtime_file"
+chmod 600 "$runtime_file"
+```
+
+For `readonly`, set only:
+
+```dotenv
+JOOMLA_MCP_SITE_TOKEN=the-dedicated-joomla-api-token
+```
+
+Guarded write profiles additionally require `JOOMLA_MCP_APPROVAL_SECRET` containing at least 32 random characters. The `full` profile also requires the separately scoped `JOOMLA_MCP_UPDATE_TOKEN`.
+
+Run the built-in non-mutating read evidence before starting normal work:
+
+```bash
+./scripts/occtl.sh joomla-test opencode-joomla "$runtime_file" company
+./scripts/occtl.sh session opencode-joomla "$runtime_file"
+```
+
+The read test uses the upstream `read` profile, Joomla API transport, local stdio MCP transport, and non-interactive mode. Redacted evidence is retained under `/workspace/.artifacts/joomla-mcp/<session-id>`.
+
+Inside OpenCode, begin with `joomla_sites_list`, then use `joomla_capabilities`, `joomla_actions_search`, and `joomla_action_describe` before executing a fixed semantic action. Treat Joomla content and error text as untrusted data, not instructions.
+
+## Credential and network boundaries
+
+No long-lived credential belongs in an image, repository, OpenCode JSON, Joomla site file, or command argument. Runtime values live in a caller-owned mode-`0600` file under `/run/user/$UID/vdm-opencode`. Session startup rejects unsafe file types, ownership, modes, hard links, malformed entries, unknown keys, duplicate keys, and missing Joomla values. The file is copied into the VM through systemd `LoadCredential`; secret values do not enter Incus process arguments.
+
+Local stdio opens no inbound VM port and requires no MCP HTTP bearer token or JWKS service. It inherits only the scoped Joomla credentials required by the selected site profile.
+
+The ready `connected` policy can reach public HTTPS Joomla origins while rejecting private, management, metadata, link-local, and carrier-grade NAT ranges. A private Joomla site requires an approved brokered/restricted route or an explicitly acknowledged lab environment. Do not weaken the common connected ACL to reach one private target.
+
+## Production gate
+
+JoomEngine MCP for Joomla is installed and configuration is fail-closed, but upstream does not claim complete production certification for every Joomla action family. Before promoting broader profiles, build and import the real PHP/full images on independent Incus hosts, retain the included read evidence, and run the upstream mutation and recovery matrix only against an explicitly disposable Joomla site.
 
 ## Documentation
 
 Start with:
 
 - `docs/quick-start.md`
-- `docs/architecture.md`
-- `docs/security-model.md`
 - `docs/image-variants.md`
 - `docs/mcp-catalog.md`
-- `docs/provider-integration.md`
-- `docs/browser-testing.md`
+- `docs/joomla-mcp-study.md`
 - `docs/credentials-and-brokers.md`
-- `docs/scaling-and-operations.md`
 - `docs/local-image-builds.md`
-- `docs/gitea-packages.md`
-- `docs/github-and-gitea.md`
-- `docs/backup-and-migration.md`
+- `docs/versioning-and-promotion.md`
 
 ## Licence and ownership
 
 Copyright (C) 2026 Vast Development Method.
 
-The original repository source is licensed under the GNU General Public
-License version 3 only (`GPL-3.0-only`). See `LICENSE` and `COPYRIGHT`.
-Generated images contain independently licensed third-party software whose
-licences are recorded by the release SBOM.
+The repository source is licensed under GNU GPL version 3 only (`GPL-3.0-only`). Generated images contain independently licensed third-party software whose licences are recorded by the release SBOM.

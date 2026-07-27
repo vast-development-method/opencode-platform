@@ -20,6 +20,7 @@ jq -n \
   --arg os "$os_label" \
   --arg opencode "$(sudo -u "$AGENT_USER" -H "$AGENT_HOME/.local/bin/opencode" --version 2>/dev/null || true)" \
   --arg git_mcp "$(sudo -u "$AGENT_USER" -H "$AGENT_HOME/.local/share/pipx/venvs/mcp-server-git/bin/python" -c 'import importlib.metadata; print(importlib.metadata.version("mcp-server-git"))' 2>/dev/null || true)" \
+  --arg joomla_mcp "$(npm list --global --json --depth=0 2>/dev/null | jq -r '.dependencies["@joomengine/joomla-mcp"].version // empty' 2>/dev/null || true)" \
   --arg node "$(node --version 2>/dev/null || true)" \
   --arg php "$(php -r 'echo PHP_VERSION;' 2>/dev/null || true)" \
   --arg python "$(python3 --version 2>/dev/null || true)" \
@@ -32,6 +33,7 @@ jq -n \
     toolchain: {
       opencode: $opencode,
       git_mcp: $git_mcp,
+      joomla_mcp: $joomla_mcp,
       node: $node,
       php: $php,
       python: $python

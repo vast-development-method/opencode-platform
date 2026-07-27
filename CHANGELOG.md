@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0-rc.2 - 2026-07-27
+
+- Added `joomla-mcp` as a manifest-owned composable capability for PHP and full images.
+- Pinned and verified `@joomengine/joomla-mcp@0.7.0` from the public JoomEngine repository.
+- Added stable stdio, HTTP, live-test and configuration-check wrappers while keeping Joomla disabled and
+  unconfigured in every published image.
+- Added HTTPS-only single-site profile generation with read-only defaults, bounded write profiles, separate update
+  credentials and indefinite grants disabled.
+- Extended the systemd credential path with Joomla site, approval and update values, duplicate-key rejection and
+  required-credential preflight.
+- Added a non-mutating in-image read test that retains redacted evidence under the workspace without placing
+  credential values in Incus arguments.
+- Added build verification, manifest/source-lock tests, stale-repository detection and complete operator
+  documentation for deployment, use, testing, network boundaries and promotion.
+
 ## 0.3.0-rc.1 - 2026-07-22
 
 - Made `manifest/images.yaml` the schema-validated authority for composition,

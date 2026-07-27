@@ -4,7 +4,7 @@
 
 ```bash
 git clone https://github.com/vast-development-method/opencode-platform.git
-cd vdm-opencode-platform
+cd opencode-platform
 cp .env.example .env
 ./tests/validate-repository.sh
 ```
@@ -40,41 +40,107 @@ Build every variant only on a dedicated builder with sufficient disk space:
 ./scripts/build-all-images.sh
 ```
 
+A platform upgrade that changes the PHP image requires rebuilding and relaunching from the new versioned alias.
+Existing instances do not acquire newly installed packages merely because the repository changed.
+
 ## 4. Launch a personal VM
 
 ```bash
 ./scripts/launch-vm.sh php opencode-llewellyn
 ```
 
-## 5. Prepare runtime-only variables
+## 5. Configure JoomEngine MCP for Joomla
+
+The PHP and full images contain the exact package recorded in `manifest/toolchain.env`. Configure one HTTPS Joomla
+origin; this writes only a root-owned, non-secret site definition and enables the local stdio entry:
 
 ```bash
-runtime_file="$(./scripts/create-runtime-env.sh opencode-llewellyn)"
-editor "$runtime_file"
+./scripts/occtl.sh joomla-configure \
+  opencode-llewellyn \
+  https://www.example.com \
+  company \
+  readonly
+```
+
+Profiles are explicit:
+
+- `readonly` is the default and contains no write/admin toolset;
+- `content` adds guarded content, structure and media writes;
+- `admin` adds guarded user, extension, configuration and maintenance administration;
+- `full` additionally exposes `core-update` and requires a separately scoped update token.
+
+Do not select `content`, `admin`, or `full` merely to make a read test pass. Joomla ACLs, enabled Web Services
+plugins, the package's permission grants and its one-time plans remain independent controls.
+
+## 6. Prepare runtime-only credentials
+
+```bash
+runtime_file="$(./scripts/occtl.sh credentials opencode-llewellyn)"
+"${EDITOR:-nano}" "$runtime_file"
 chmod 600 "$runtime_file"
 ```
 
-The file is under `/run/user/$UID`, which is tmpfs. Obtain only short-lived scoped tokens from the broker.
+For the normal read-only profile, set only:
 
-## 6. Enable required MCP servers
-
-```bash
-./scripts/mcp-toggle.sh opencode-llewellyn github true
-./scripts/mcp-toggle.sh opencode-llewellyn gitea true
-./scripts/mcp-toggle.sh opencode-llewellyn playwright true
+```dotenv
+JOOMLA_MCP_SITE_TOKEN=the-dedicated-joomla-api-token
 ```
 
-Joomla and JCB are intentionally absent and cannot be enabled until their VDM-owned releases are approved.
+The file is under `/run/user/$UID`, which is tmpfs. The script rejects symlinks, foreign ownership, hard links,
+unexpected names and duplicate variables. Tokens are copied through systemd credentials and never placed in an
+Incus command argument.
 
-## 7. Start OpenCode
+A guarded write profile also requires a random approval secret of at least 32 characters:
 
 ```bash
-./scripts/start-session.sh opencode-llewellyn "$runtime_file"
+openssl rand -hex 32
 ```
+
+Place the result in `JOOMLA_MCP_APPROVAL_SECRET`. The `full` profile additionally requires
+`JOOMLA_MCP_UPDATE_TOKEN`; do not reuse the normal Joomla API token.
+
+## 7. Run the safe in-image Joomla test
+
+```bash
+./scripts/occtl.sh joomla-test \
+  opencode-llewellyn \
+  "$runtime_file" \
+  company
+```
+
+This executes `joomla-mcp-live-test` inside the VM with `--profile read`, Joomla API transport and stdio MCP
+transport. It has no mutation confirmation or disposable-site flag and writes redacted evidence under
+`/workspace/.artifacts/joomla-mcp/<session-id>`.
+
+The upstream `crud` and `full` live matrices are intentionally not wrapped by this convenience command. Run those
+only against an explicitly disposable Joomla site after reading the upstream live-testing documentation.
+
+## 8. Enable other required MCP servers
+
+Joomla was enabled by `joomla-configure`. Other integrations remain separate:
+
+```bash
+./scripts/occtl.sh mcp opencode-llewellyn github true
+./scripts/occtl.sh mcp opencode-llewellyn gitea true
+./scripts/occtl.sh mcp opencode-llewellyn playwright true
+```
+
+Enabling a local MCP now fails if its executable is absent. Enabling Joomla also fails if the target configuration
+is absent or invalid.
+
+## 9. Start OpenCode
+
+```bash
+./scripts/occtl.sh session opencode-llewellyn "$runtime_file"
+```
+
+The session validates every credential name referenced by the Joomla site file before starting OpenCode. Inside
+OpenCode, call `joomla_sites_list`, then `joomla_capabilities`, `joomla_actions_search` and
+`joomla_action_describe` before executing an action.
 
 The guest's OpenCode data directory lives under `/run` for this session.
 
-## 8. Configure model roles
+## 10. Configure model roles
 
 After provider access is working:
 
@@ -84,7 +150,7 @@ After provider access is working:
 
 Use exact IDs shown by `opencode models`.
 
-## 9. Normal work
+## 11. Normal work
 
 Clone only repositories assigned to the session account, create an agent branch, run tests and open a pull request.
 Do not merge or release directly from an autonomous session.

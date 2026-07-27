@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import unittest
 from pathlib import Path
 
@@ -52,6 +53,31 @@ class SecurityStaticTest(unittest.TestCase):
         self.assertIn("user.vdm.session.expires_epoch", session)
         for forbidden in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "XAI_API_KEY", "LD_PRELOAD", "BASH_ENV"):
             self.assertNotIn(forbidden, session)
+
+    def test_joomla_defaults_are_local_read_only_and_credential_free(self) -> None:
+        example = json.loads(
+            (
+                ROOT
+                / "image/files/etc/joomla-mcp/sites.readonly.example.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertNotIn("approval", example)
+        for site in example["sites"].values():
+            self.assertTrue(site["api"]["baseUrl"].startswith("https://"))
+            self.assertEqual("JOOMLA_MCP_SITE_TOKEN", site["api"]["tokenEnv"])
+            for toolset in site["toolsets"]:
+                self.assertFalse(toolset.endswith(".write"))
+                self.assertFalse(toolset.endswith(".admin"))
+                self.assertNotEqual("core-update", toolset)
+
+        provision = (ROOT / "image/provision/joomla-mcp.sh").read_text()
+        self.assertIn('"enabled": false', provision)
+        self.assertIn("--ignore-scripts", provision)
+        self.assertNotIn("JOOMLA_MCP_SITE_TOKEN=", provision)
+
+        configure = (ROOT / "scripts/configure-joomla-mcp.sh").read_text()
+        self.assertIn("allowIndefinite: false", configure)
+        self.assertNotIn("--env JOOMLA_MCP_SITE_TOKEN", configure)
 
     def test_all_provider_routes_exist(self) -> None:
         config = yaml.safe_load((ROOT / "broker/config/litellm.yaml").read_text())

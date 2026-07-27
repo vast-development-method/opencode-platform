@@ -36,6 +36,10 @@ Packages remain under `build/packages/<version>/<architecture>/<variant>/`.
 Every package contains the Incus export, manifest, provenance and checksums;
 release mode additionally requires an SBOM, vulnerability scan and signature.
 
+The PHP and full images include the exact Joomla MCP package recorded in
+`manifest/toolchain.env`. They contain only a read-only example and a disabled
+OpenCode entry; no active Joomla origin or credential is part of a package.
+
 ## Publish directly to Gitea
 
 Create a dedicated Gitea package publisher account and a package-write-only token. Keep the token out of `.env`, shell history, Git, and the built images.
@@ -55,7 +59,9 @@ export GITEA_PACKAGE_USER='package-publisher'
 unset GITEA_PACKAGE_TOKEN
 ```
 
-The package names are `vdm-opencode-<variant>`, and the package version is read from both `VERSION` and `manifest/platform.env`. The command refuses to run if those versions disagree.
+The package names are `vdm-opencode-<variant>`, and the package version is read
+from `VERSION` and `manifest/generated/platform.env`. The command refuses to
+run if those versions disagree.
 
 ## Production tagged release
 
@@ -63,7 +69,7 @@ For a reproducible production release, build the exact protected tag and require
 
 ```bash
 git fetch --tags --prune origin
-git switch --detach v0.3.0-rc.1
+git switch --detach v0.3.0-rc.2
 
 export LOCAL_BUILD_VARIANTS=all
 export LOCAL_REQUIRE_CLEAN=true
@@ -81,7 +87,7 @@ export GITEA_PACKAGE_TOKEN
 unset GITEA_PACKAGE_TOKEN
 ```
 
-Replace `v0.3.0-rc.1` with the version being released. Tags must not be recreated or force-moved after packages are published.
+Replace `v0.3.0-rc.2` with the version being released. Tags must not be recreated or force-moved after packages are published.
 
 ## Supported environment variables
 
@@ -106,4 +112,6 @@ incus --project vdm-agents image list
 ./scripts/launch-vm.sh php opencode-llewellyn
 ```
 
-Runtime GitHub, Gitea MCP, model, and other authentication is added only when starting a VM session. It is not embedded in released images.
+Configure the Joomla origin only after launch with `occtl joomla-configure`.
+Runtime GitHub, Gitea, Joomla, model and other authentication is added only
+when starting a bounded VM session. It is not embedded in released images.
