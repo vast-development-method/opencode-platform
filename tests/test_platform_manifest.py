@@ -49,7 +49,7 @@ class PlatformManifestTest(unittest.TestCase):
         )
         capability = self.data["dimensions"]["capabilities"]["joomla-mcp"]
         self.assertEqual("ready", capability["status"])
-        self.assertEqual(["joomla-mcp"], capabity["components"])
+        self.assertEqual(["joomla-mcp"], capability["components"])
 
         for image in ("php", "full"):
             self.assertIn("joomla-mcp", self.data["images"][image]["capabilities"])
