@@ -44,4 +44,17 @@ jobs:
           retention-days: 7
 
       - name: Test image package round trip
-        run: ./tests/package-roundtrip.sh
+        id: package-roundtrip
+        shell: bash
+        run: |
+          set -o pipefail
+          ./tests/package-roundtrip.sh 2>&1 | tee package-roundtrip.log
+
+      - name: Upload failed package round-trip log
+        if: failure() && steps.package-roundtrip.outcome == 'failure'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v4.6.2
+        with:
+          name: package-roundtrip-log
+          path: package-roundtrip.log
+          if-no-files-found: error
+          retention-days: 7
