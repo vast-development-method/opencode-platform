@@ -17,7 +17,7 @@ TTL="${4:-30m}"
 [[ "$SITE_ALIAS" =~ ^[A-Za-z][A-Za-z0-9_-]{0,63}$ ]] ||
     die "Unsafe Joomla site alias: $SITE_ALIAS"
 TTL_SECONDS="$(duration_to_seconds "$TTL")"
-((TTL_SECONDS >= 60 && TT_SECONDS <= 86400)) ||
+((TTL_SECONDS >= 60 && TTL_SECONDS <= 86400)) ||
     die "Test TTL must be between 60 seconds and 24 hours."
 
 project_cmd info "$NAME" >/dev/null 2>&1 || die "Unknown instance: $NAME"
@@ -27,6 +27,8 @@ wait_for_vm "$NAME" || die "VM agent did not become ready: $NAME"
 validate_runtime_file "$HOST_ENV_FILE"
 validate_joomla_mcp_runtime_credentials "$NAME" "$HOST_ENV_FILE"
 joomla_mcp_enabled "$NAME" || die "Joomla MCP is not enabled in $NAME"
+# The jq program must reach the guest unchanged.
+# shellcheck disable=SC2016
 project_cmd exec "$NAME" --mode=non-interactive -- \
     jq -e --arg alias "$SITE_ALIAS" '.sites[$alias] != null' \
     /etc/joomla-mcp/sites.json >/dev/null ||
