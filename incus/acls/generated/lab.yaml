@@ -1,7 +1,10 @@
 # Generated from manifest/images.yaml. Do not edit.
 description: 'VDM generated egress policy: lab'
-config: {}
+config:
+  user.vdm.managed: 'true'
+  user.vdm.platform: vdm-opencode-platform
 ingress: []
 egress:
   - action: allow
+    state: enabled
     description: Experimental lab egress

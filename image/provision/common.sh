@@ -3,7 +3,18 @@ set -Eeuo pipefail
 
 AGENT_USER="${AGENT_USER:-opencode}"
 AGENT_HOME="/home/${AGENT_USER}"
+BUILD_CACHE_DIR="${VDM_BUILD_CACHE_DIR:-}"
 export DEBIAN_FRONTEND=noninteractive
+
+if [ -n "$BUILD_CACHE_DIR" ]; then
+    install -d -m 0755 \
+        "$BUILD_CACHE_DIR/apt/archives/partial" \
+        "$BUILD_CACHE_DIR/npm" \
+        "$BUILD_CACHE_DIR/pip"
+    cat > /etc/apt/apt.conf.d/90-vdm-build-cache <<EOF
+Dir::Cache::archives "$BUILD_CACHE_DIR/apt/archives";
+EOF
+fi
 
 apt-get update
 apt-get install -y --no-install-recommends \
@@ -32,6 +43,11 @@ apt-get install -y --no-install-recommends \
 
 if ! id "$AGENT_USER" >/dev/null 2>&1; then
     useradd --create-home --shell /bin/bash "$AGENT_USER"
+fi
+if [ -n "$BUILD_CACHE_DIR" ]; then
+    chown -R "$AGENT_USER:$AGENT_USER" \
+        "$BUILD_CACHE_DIR/npm" \
+        "$BUILD_CACHE_DIR/pip"
 fi
 
 install -d -o "$AGENT_USER" -g "$AGENT_USER" -m 0750 /workspace
@@ -62,6 +78,7 @@ ln -sfn "$opencode_path" "$AGENT_HOME/.local/bin/opencode"
 sudo -u "$AGENT_USER" -H env \
     PIPX_HOME="$AGENT_HOME/.local/share/pipx" \
     PIPX_BIN_DIR="$AGENT_HOME/.local/bin" \
+    PIP_CACHE_DIR="${PIP_CACHE_DIR:-$AGENT_HOME/.cache/pip}" \
     pipx install --force "${GIT_MCP_PACKAGE:?GIT_MCP_PACKAGE is required}"
 
 test -x "$AGENT_HOME/.local/bin/opencode"

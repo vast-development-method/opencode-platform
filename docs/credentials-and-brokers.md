@@ -15,6 +15,8 @@ The host file is created by:
 It lives under `/run/user/$UID/vdm-opencode`, must be a regular single-link file
 owned by the caller with mode `0600`, and is never passed as a string of secret
 values to `incus exec`.
+`VDM_RUNTIME_BASE` may select another caller-owned mode-`0700` tmpfs mount;
+non-tmpfs paths are rejected so credentials cannot be persisted accidentally.
 
 This reduces persistence but does not hide a token from the process that must
 use it. Therefore all injected tokens must be:

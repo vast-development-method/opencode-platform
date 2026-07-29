@@ -41,5 +41,4 @@ project_cmd config set "$NAME" user.vdm.session.ttl "${VDM_SESSION_TTL:-$DEFAULT
 project_cmd config set "$NAME" user.vdm.workspace.lifecycle "${VDM_WORKSPACE_LIFECYCLE:-disposable}"
 project_cmd start "$NAME"
 wait_for_vm "$NAME" || die "VM agent did not become ready: $NAME"
-project_cmd snapshot create "$NAME" factory
 log "Launched $NAME from $ALIAS"

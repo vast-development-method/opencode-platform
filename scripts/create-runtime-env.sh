@@ -10,7 +10,30 @@ NAME="${1:-}"
 [[ "$NAME" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$ ]] ||
     die "Usage: $0 INSTANCE_NAME"
 
-DIR="/run/user/${UID}/vdm-opencode"
+RUNTIME_BASE="${VDM_RUNTIME_BASE:-/run/user/${UID}}"
+[[ "$RUNTIME_BASE" == /* && "$RUNTIME_BASE" != *$'\n'* ]] ||
+    die "VDM_RUNTIME_BASE must be an absolute path without newlines"
+[ ! -L "$RUNTIME_BASE" ] ||
+    die "Runtime base must not be a symbolic link: $RUNTIME_BASE"
+if [ -e "$RUNTIME_BASE" ]; then
+    [ -d "$RUNTIME_BASE" ] ||
+        die "Runtime base must be a directory: $RUNTIME_BASE"
+else
+    runtime_parent="$(dirname "$RUNTIME_BASE")"
+    [ -d "$runtime_parent" ] ||
+        die "Runtime base parent does not exist: $runtime_parent"
+    [ "$(stat -f -c '%T' "$runtime_parent")" = tmpfs ] ||
+        die "Runtime base parent must be backed by tmpfs: $runtime_parent"
+    install -d -m 0700 "$RUNTIME_BASE"
+fi
+[ "$(stat -c '%u' "$RUNTIME_BASE")" = "$UID" ] ||
+    die "Runtime base must be owned by UID $UID: $RUNTIME_BASE"
+[ "$(stat -c '%a' "$RUNTIME_BASE")" = 700 ] ||
+    die "Runtime base must have mode 0700: $RUNTIME_BASE"
+[ "$(stat -f -c '%T' "$RUNTIME_BASE")" = tmpfs ] ||
+    die "Runtime base must be backed by tmpfs: $RUNTIME_BASE"
+
+DIR="${RUNTIME_BASE}/vdm-opencode"
 FILE="${DIR}/${NAME}.env"
 install -d -m 0700 "$DIR"
 [ "$(stat -c '%u' "$DIR")" = "$UID" ] ||

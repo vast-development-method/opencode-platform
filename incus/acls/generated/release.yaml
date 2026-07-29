@@ -1,24 +1,30 @@
 # Generated from manifest/images.yaml. Do not edit.
 description: 'VDM generated egress policy: release'
-config: {}
+config:
+  user.vdm.managed: 'true'
+  user.vdm.platform: vdm-opencode-platform
 ingress: []
 egress:
   - action: allow
+    state: enabled
     description: Runtime DNS
     destination: 10.248.18.1/32
     protocol: udp
     destination_port: '53'
   - action: allow
+    state: enabled
     description: Runtime DNS over TCP
     destination: 10.248.18.1/32
     protocol: tcp
     destination_port: '53'
   - action: allow
+    state: enabled
     description: Capability gateway
     destination: 10.248.18.1/32
     protocol: tcp
     destination_port: '443'
   - action: allow
+    state: enabled
     description: Release HTTP CONNECT proxy
     destination: 10.248.18.1/32
     protocol: tcp

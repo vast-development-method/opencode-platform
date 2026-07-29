@@ -76,6 +76,41 @@ def validate_manifest(data: Mapping[str, Any]) -> None:
     require(copyright_data.get("holder") == "Vast Development Method", "copyright holder must be Vast Development Method")
     require(isinstance(copyright_data.get("year"), int), "copyright year must be an integer")
 
+    build = require_mapping(data.get("build"), "build")
+    build_host = require_mapping(build.get("host"), "build.host")
+    require(
+        isinstance(build_host.get("memory_reserve_percent"), int)
+        and 10 <= build_host["memory_reserve_percent"] <= 50,
+        "build.host.memory_reserve_percent must be between 10 and 50",
+    )
+    require(
+        isinstance(build_host.get("cpu_reserve"), int)
+        and build_host["cpu_reserve"] >= 1,
+        "build.host.cpu_reserve must be a positive integer",
+    )
+    for field, pattern in (
+        ("memory_reserve_min", r"[1-9]\d*GiB"),
+        ("qemu_overhead", r"[1-9]\d*MiB"),
+        ("disk_reserve", r"[1-9]\d*GiB"),
+    ):
+        require(
+            isinstance(build_host.get(field), str)
+            and re.fullmatch(pattern, build_host[field]) is not None,
+            f"invalid build.host.{field}",
+        )
+
+    build_cache = require_mapping(build.get("cache"), "build.cache")
+    require(
+        isinstance(build_cache.get("volume"), str)
+        and IDENTIFIER.fullmatch(build_cache["volume"]) is not None,
+        "build.cache.volume must be a safe identifier",
+    )
+    require(
+        isinstance(build_cache.get("size"), str)
+        and re.fullmatch(r"[1-9]\d*GiB", build_cache["size"]) is not None,
+        "invalid build.cache.size",
+    )
+
     architectures = require_mapping(platform.get("architectures"), "platform.architectures")
     require({"amd64", "arm64"}.issubset(architectures), "amd64 and arm64 architectures are required")
     require_identifiers(architectures, "platform.architectures")
@@ -146,6 +181,35 @@ def validate_manifest(data: Mapping[str, Any]) -> None:
 
     images = require_mapping(data.get("images"), "images")
     require_identifiers(images, "images")
+    build_variants = require_mapping(build.get("variants"), "build.variants")
+    require(
+        set(build_variants) == set(images),
+        "build.variants must define exactly the image catalog",
+    )
+    for name, resources in build_variants.items():
+        resources = require_mapping(resources, f"build.variants.{name}")
+        for field in ("min_cpus", "preferred_cpus"):
+            require(
+                isinstance(resources.get(field), int) and resources[field] > 0,
+                f"invalid build.variants.{name}.{field}",
+            )
+        require(
+            resources["preferred_cpus"] >= resources["min_cpus"],
+            f"build.variants.{name}.preferred_cpus must be at least min_cpus",
+        )
+        for field in ("min_memory", "preferred_memory", "disk"):
+            require(
+                isinstance(resources.get(field), str)
+                and re.fullmatch(r"[1-9]\d*GiB", resources[field]) is not None,
+                f"invalid build.variants.{name}.{field}",
+            )
+        min_memory = int(resources["min_memory"][:-3])
+        preferred_memory = int(resources["preferred_memory"][:-3])
+        require(
+            preferred_memory >= min_memory,
+            f"build.variants.{name}.preferred_memory must be at least min_memory",
+        )
+
     require(any(image.get("release") is True for image in images.values()), "at least one release image is required")
     for name, image in images.items():
         image = require_mapping(image, f"images.{name}")
@@ -209,6 +273,10 @@ def shell_array(values: Iterable[str]) -> str:
 
 def render_shell(data: Mapping[str, Any]) -> str:
     platform = data["platform"]
+    build = data["build"]
+    build_host = build["host"]
+    build_cache = build["cache"]
+    build_variants = build["variants"]
     images = data["images"]
     release_images = [name for name, image in images.items() if image["release"]]
     release_architectures = [name for name, architecture in platform["architectures"].items() if architecture["release"]]
@@ -221,6 +289,13 @@ def render_shell(data: Mapping[str, Any]) -> str:
         f"PLATFORM_IMAGES={shell_array(images)}",
         f"PLATFORM_RELEASE_IMAGES={shell_array(release_images)}",
         f"PLATFORM_RELEASE_ARCHITECTURES={shell_array(release_architectures)}",
+        f"PLATFORM_BUILD_HOST_MEMORY_RESERVE_PERCENT={build_host['memory_reserve_percent']}",
+        f"PLATFORM_BUILD_HOST_MEMORY_RESERVE_MIN_GIB={shlex.quote(build_host['memory_reserve_min'][:-3])}",
+        f"PLATFORM_BUILD_QEMU_OVERHEAD_MIB={shlex.quote(build_host['qemu_overhead'][:-3])}",
+        f"PLATFORM_BUILD_HOST_CPU_RESERVE={build_host['cpu_reserve']}",
+        f"PLATFORM_BUILD_HOST_DISK_RESERVE_GIB={shlex.quote(build_host['disk_reserve'][:-3])}",
+        f"PLATFORM_BUILD_CACHE_VOLUME={shlex.quote(build_cache['volume'])}",
+        f"PLATFORM_BUILD_CACHE_SIZE_GIB={shlex.quote(build_cache['size'][:-3])}",
         "",
         "declare -Ag PLATFORM_ARCH_ALIASES=(",
     ]
@@ -236,6 +311,21 @@ def render_shell(data: Mapping[str, Any]) -> str:
     lines.extend([")", "", "declare -Ag PLATFORM_IMAGE_DEFAULT_SIZE=("])
     for name, image in images.items():
         lines.append(f"    [{name}]={shlex.quote(image['default_size'])}")
+    lines.extend([")", "", "declare -Ag PLATFORM_BUILD_MIN_CPUS=("])
+    for name, resources in build_variants.items():
+        lines.append(f"    [{name}]={shlex.quote(str(resources['min_cpus']))}")
+    lines.extend([")", "", "declare -Ag PLATFORM_BUILD_PREFERRED_CPUS=("])
+    for name, resources in build_variants.items():
+        lines.append(f"    [{name}]={shlex.quote(str(resources['preferred_cpus']))}")
+    lines.extend([")", "", "declare -Ag PLATFORM_BUILD_MIN_MEMORY_GIB=("])
+    for name, resources in build_variants.items():
+        lines.append(f"    [{name}]={shlex.quote(resources['min_memory'][:-3])}")
+    lines.extend([")", "", "declare -Ag PLATFORM_BUILD_PREFERRED_MEMORY_GIB=("])
+    for name, resources in build_variants.items():
+        lines.append(f"    [{name}]={shlex.quote(resources['preferred_memory'][:-3])}")
+    lines.extend([")", "", "declare -Ag PLATFORM_BUILD_DISK_GIB=("])
+    for name, resources in build_variants.items():
+        lines.append(f"    [{name}]={shlex.quote(resources['disk'][:-3])}")
     lines.extend([")", "", "declare -Ag PLATFORM_COMPONENT_PROVISION=("])
     for name, component in data["components"].items():
         if component["status"] == "ready":
@@ -317,9 +407,9 @@ def policy_profile(name: str, policy: Mapping[str, Any]) -> str:
 
 def acl_rules(name: str) -> list[dict[str, str]]:
     gateway_rules = [
-        {"action": "allow", "description": "Runtime DNS", "destination": "10.248.18.1/32", "protocol": "udp", "destination_port": "53"},
-        {"action": "allow", "description": "Runtime DNS over TCP", "destination": "10.248.18.1/32", "protocol": "tcp", "destination_port": "53"},
-        {"action": "allow", "description": "Capability gateway", "destination": "10.248.18.1/32", "protocol": "tcp", "destination_port": "443"},
+        {"action": "allow", "state": "enabled", "description": "Runtime DNS", "destination": "10.248.18.1/32", "protocol": "udp", "destination_port": "53"},
+        {"action": "allow", "state": "enabled", "description": "Runtime DNS over TCP", "destination": "10.248.18.1/32", "protocol": "tcp", "destination_port": "53"},
+        {"action": "allow", "state": "enabled", "description": "Capability gateway", "destination": "10.248.18.1/32", "protocol": "tcp", "destination_port": "443"},
     ]
     if name == "offline":
         return []
@@ -327,16 +417,16 @@ def acl_rules(name: str) -> list[dict[str, str]]:
         port = {"brokered": None, "restricted": "3128", "release": "3129"}[name]
         rules = list(gateway_rules)
         if port:
-            rules.append({"action": "allow", "description": f"{name.title()} HTTP CONNECT proxy", "destination": "10.248.18.1/32", "protocol": "tcp", "destination_port": port})
+            rules.append({"action": "allow", "state": "enabled", "description": f"{name.title()} HTTP CONNECT proxy", "destination": "10.248.18.1/32", "protocol": "tcp", "destination_port": port})
         return rules
     if name == "connected":
         rules = list(gateway_rules)
         for network in ("10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12", "192.168.0.0/16", "224.0.0.0/4"):
-            rules.append({"action": "reject", "description": "Deny private or special-use IPv4", "destination": network})
-        rules.append({"action": "allow", "description": "Public IPv4 Internet"})
+            rules.append({"action": "reject", "state": "enabled", "description": "Deny private or special-use IPv4", "destination": network})
+        rules.append({"action": "allow", "state": "enabled", "description": "Public IPv4 Internet"})
         return rules
     if name == "lab":
-        return [{"action": "allow", "description": "Experimental lab egress"}]
+        return [{"action": "allow", "state": "enabled", "description": "Experimental lab egress"}]
     raise ManifestError(f"no ACL renderer for policy {name}")
 
 
@@ -344,7 +434,10 @@ def policy_acl(name: str) -> str:
     return yaml_text(
         {
             "description": f"VDM generated egress policy: {name}",
-            "config": {},
+            "config": {
+                "user.vdm.managed": "true",
+                "user.vdm.platform": "vdm-opencode-platform",
+            },
             "ingress": [],
             "egress": acl_rules(name),
         }

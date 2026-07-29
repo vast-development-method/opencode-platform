@@ -2,7 +2,7 @@ schema: 2
 
 platform:
   name: vdm-opencode-platform
-  version: 0.3.0-rc.2
+  version: 0.3.0-rc.3
   image_prefix: vdm-opencode
   base_image: images:ubuntu/24.04/cloud
   architectures:
@@ -16,6 +16,54 @@ platform:
   copyright:
     holder: Vast Development Method
     year: 2026
+
+build:
+  host:
+    memory_reserve_percent: 20
+    memory_reserve_min: 2GiB
+    qemu_overhead: 512MiB
+    cpu_reserve: 1
+    disk_reserve: 20GiB
+  cache:
+    volume: vdm-build-cache
+    size: 20GiB
+  variants:
+    base:
+      min_cpus: 2
+      preferred_cpus: 2
+      min_memory: 3GiB
+      preferred_memory: 4GiB
+      disk: 40GiB
+    php:
+      min_cpus: 2
+      preferred_cpus: 4
+      min_memory: 6GiB
+      preferred_memory: 8GiB
+      disk: 100GiB
+    python:
+      min_cpus: 2
+      preferred_cpus: 4
+      min_memory: 4GiB
+      preferred_memory: 6GiB
+      disk: 60GiB
+    cpp:
+      min_cpus: 2
+      preferred_cpus: 4
+      min_memory: 4GiB
+      preferred_memory: 6GiB
+      disk: 100GiB
+    typescript:
+      min_cpus: 2
+      preferred_cpus: 4
+      min_memory: 6GiB
+      preferred_memory: 8GiB
+      disk: 80GiB
+    full:
+      min_cpus: 4
+      preferred_cpus: 6
+      min_memory: 8GiB
+      preferred_memory: 12GiB
+      disk: 160GiB
 
 components:
   shell: {status: ready, provision: null}

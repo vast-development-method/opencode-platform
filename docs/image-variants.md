@@ -46,8 +46,9 @@ instead of weakening the common ACL.
 ## Resource sizes
 
 Tiny, small, medium, standard, large, xlarge and builder profiles are selected
-at VM launch. They are independent of image composition, avoiding a
-combinatorial image catalogue.
+at VM launch. They are independent of image composition and of the separate
+manifest-owned build plans. A `standard` 16 GiB runtime profile therefore does
+not cause a temporary image builder to allocate 16 GiB.
 
 ## Adding support
 

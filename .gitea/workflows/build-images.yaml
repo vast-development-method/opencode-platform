@@ -41,7 +41,7 @@ jobs:
         run: ./tests/validate-repository.sh
       - name: Verify Incus build runner
         run: |
-          ./scripts/ci/check-incus-runner.sh
+          ./scripts/ci/check-incus-runner.sh "${{ matrix.variant }}"
           ./scripts/ci/check-architecture.sh "${{ matrix.architecture }}"
       - name: Build image
         run: ./scripts/build-image.sh "${{ matrix.variant }}"

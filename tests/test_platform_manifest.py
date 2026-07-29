@@ -42,6 +42,24 @@ class PlatformManifestTest(unittest.TestCase):
         self.assertEqual("planned", dimensions["capabilities"]["android"]["status"])
         self.assertEqual("planned", dimensions["capabilities"]["gpu"]["status"])
 
+    def test_build_resources_are_separate_and_complete(self) -> None:
+        build = self.data["build"]
+        self.assertEqual(20, build["host"]["memory_reserve_percent"])
+        self.assertEqual("2GiB", build["host"]["memory_reserve_min"])
+        self.assertEqual("512MiB", build["host"]["qemu_overhead"])
+        self.assertEqual(set(self.data["images"]), set(build["variants"]))
+
+        typescript = build["variants"]["typescript"]
+        self.assertEqual(4, typescript["preferred_cpus"])
+        self.assertEqual("6GiB", typescript["min_memory"])
+        self.assertEqual("8GiB", typescript["preferred_memory"])
+        self.assertEqual("80GiB", typescript["disk"])
+        self.assertEqual(
+            "standard",
+            self.data["images"]["typescript"]["default_size"],
+            "The runtime size remains independent from the build plan.",
+        )
+
     def test_joomla_mcp_is_composable_and_php_scoped(self) -> None:
         self.assertEqual(
             {"status": "ready", "provision": "joomla-mcp.sh"},

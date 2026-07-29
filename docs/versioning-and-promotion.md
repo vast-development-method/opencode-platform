@@ -3,9 +3,9 @@
 The repository version, image alias, Gitea package version and release tag must match.
 
 ```text
-Repository tag:       v0.3.0-rc.2
-Incus alias:          vdm-opencode-php/0.3.0-rc.2-amd64
-Gitea package:        vdm-opencode-php-amd64/0.3.0-rc.2
+Repository tag:       v0.3.0-rc.3
+Incus alias:          vdm-opencode-php/0.3.0-rc.3-amd64
+Gitea package:        vdm-opencode-php-amd64/0.3.0-rc.3
 Build manifest:       /etc/vdm-opencode-platform/build.json
 ```
 

@@ -4,17 +4,84 @@ This path builds, packages, verifies and optionally publishes Incus images entir
 
 ## One-time builder setup
 
-Use a trusted Ubuntu host with hardware virtualisation, read/write access to `/dev/kvm`, Incus, and at least the configured `MIN_BUILD_FREE_GIB`.
+Use a trusted Ubuntu or Debian host with hardware virtualisation, read/write
+access to `/dev/kvm`, and a supported Incus package. The bootstrap installs the
+newest candidate from the host's already configured repositories. Incus LTS is
+recommended for production builders; changing from the distribution package to
+another supported package source is a separate operator decision.
 
 ```bash
 git clone https://github.com/vast-development-method/opencode-platform.git
 cd opencode-platform
 cp .env.example .env
 ./scripts/bootstrap-host.sh
-./scripts/ci/check-incus-runner.sh
+./scripts/ci/check-incus-runner.sh typescript
 ```
 
 The builder does not need a GitHub Actions runner or a Gitea Actions runner.
+
+`bootstrap-host.sh` is deliberately conservative:
+
+- APT and dpkg must already be internally consistent.
+- `/usr/bin/cp`, `/usr/bin/mv`, and `/usr/bin/rm` must exist and be executable.
+- No package repository or coreutils provider is added, removed or replaced.
+- If a newer Incus package would restart a daemon with running instances, the
+  command stops and lists those instances. Set
+  `VDM_ALLOW_INCUS_UPGRADE_WITH_RUNNING_INSTANCES=true` only during scheduled
+  downtime.
+
+## Build capacity
+
+Build resources are distinct from launch-time runtime sizes. The manifest
+defines a minimum and preferred build plan for every variant. Before it creates
+or starts a VM, the builder:
+
+- keeps the greater of 20% of total RAM or 2 GiB available to the host;
+- reserves an additional 512 MiB for QEMU overhead;
+- leaves at least one online CPU to the host;
+- checks current `MemAvailable`, not merely installed RAM;
+- does not count swap;
+- checks variant disk, cache and host reserve requirements.
+
+| Variant | Minimum build | Preferred build | Virtual disk |
+|---|---:|---:|---:|
+| `base` | 2 CPUs / 3 GiB | 2 CPUs / 4 GiB | 40 GiB |
+| `php` | 2 CPUs / 6 GiB | 4 CPUs / 8 GiB | 100 GiB |
+| `python` | 2 CPUs / 4 GiB | 4 CPUs / 6 GiB | 60 GiB |
+| `cpp` | 2 CPUs / 4 GiB | 4 CPUs / 6 GiB | 100 GiB |
+| `typescript` | 2 CPUs / 6 GiB | 4 CPUs / 8 GiB | 80 GiB |
+| `full` | 4 CPUs / 8 GiB | 6 CPUs / 12 GiB | 160 GiB |
+
+A 14 GiB, 4-core/8-thread laptop is sufficient for TypeScript when other
+workloads leave roughly 9.5 GiB available. If only 3.4 GiB is available, the
+builder reports the exact shortfall and exits before applying Incus resources.
+Closing other workloads is sufficient; adding swap is not a repository
+requirement.
+
+## Caching, resume and clean builds
+
+The default managed `vdm-build-cache` volume retains only package/browser
+downloads. Package managers still perform their normal signature and integrity
+checks. The volume is detached before verification is published, so it is not
+part of the image.
+
+If a build fails, the VM is stopped rather than destroyed. Completed stages
+resume when the same source and variant are run again, and a non-secret
+diagnostic bundle is written under `build/diagnostics/`.
+
+```bash
+# Resume the exact retained checkpoint.
+./scripts/build-image.sh typescript
+
+# Discard that checkpoint but retain verified download caches.
+./scripts/build-image.sh --clean typescript
+
+# Independent clean-room evidence: no checkpoint and no shared cache.
+./scripts/build-image.sh --clean --no-cache typescript
+```
+
+Successful builds delete their temporary VM automatically. The managed cache
+remains bounded by the manifest.
 
 ## Build locally without publishing
 
@@ -69,7 +136,7 @@ For a reproducible production release, build the exact protected tag and require
 
 ```bash
 git fetch --tags --prune origin
-git switch --detach v0.3.0-rc.2
+git switch --detach v0.3.0-rc.3
 
 export LOCAL_BUILD_VARIANTS=all
 export LOCAL_REQUIRE_CLEAN=true
@@ -87,7 +154,7 @@ export GITEA_PACKAGE_TOKEN
 unset GITEA_PACKAGE_TOKEN
 ```
 
-Replace `v0.3.0-rc.2` with the version being released. Tags must not be recreated or force-moved after packages are published.
+Replace `v0.3.0-rc.3` with the version being released. Tags must not be recreated or force-moved after packages are published.
 
 ## Supported environment variables
 
@@ -101,6 +168,9 @@ Replace `v0.3.0-rc.2` with the version being released. Tags must not be recreate
 | `GITEA_PACKAGE_OWNER` | unset | Gitea package owner. |
 | `GITEA_PACKAGE_USER` | unset | Dedicated publishing user. |
 | `GITEA_PACKAGE_TOKEN` | unset | Runtime-only package-write token. |
+| `MIN_BUILD_FREE_GIB` | `0` | Optional disk floor; zero uses the variant-specific manifest requirement. |
+| `VDM_BUILD_CACHE` | `true` | Reuse the managed package/browser download cache. |
+| `MIN_INCUS_VERSION` | `6.0.5` | Oldest supported Incus server; bootstrap still installs the newest configured candidate. |
 
 ## Import and use
 
