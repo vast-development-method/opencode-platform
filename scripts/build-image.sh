@@ -47,8 +47,9 @@ for command in incus jq sha256sum tar; do
     require_command "$command"
 done
 [ "$(uname -s)" = Linux ] || die "Image builds require a Linux host."
-[ -r /dev/kvm ] && [ -w /dev/kvm ] ||
+if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
     die "Image builds require read/write access to /dev/kvm."
+fi
 incus_cmd info >/dev/null 2>&1 ||
     die "The build user cannot communicate with the Incus daemon."
 
@@ -120,10 +121,12 @@ assert_managed_checkpoint() {
         project_cmd config get "$BUILD_NAME" user.vdm.build.variant 2>/dev/null ||
             true
     )"
-    [ "$managed" = true ] &&
+    if [ "$managed" = true ] &&
         [ "$fingerprint" = "$build_fingerprint" ] &&
-        [ "$variant" = "$VARIANT" ] ||
-        die "Refusing to reuse or delete $BUILD_NAME because its build ownership metadata is invalid."
+        [ "$variant" = "$VARIANT" ]; then
+        return
+    fi
+    die "Refusing to reuse or delete $BUILD_NAME because its build ownership metadata is invalid."
 }
 
 device_exists() {
