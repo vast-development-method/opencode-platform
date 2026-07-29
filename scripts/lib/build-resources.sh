@@ -92,8 +92,12 @@ select_build_resources() {
     local reserve_mib
     local percent_reserve_mib
     local safe_memory_mib
+    local min_cpus
+    local min_memory_gib
     local min_memory_mib
+    local preferred_memory_gib
     local preferred_memory_mib
+    local disk_gib
     local cpus
     local safe_cpus
     local available_disk_gib
@@ -104,6 +108,10 @@ select_build_resources() {
     total_mib="$(read_meminfo_mib MemTotal)"
     available_mib="$(read_meminfo_mib MemAvailable)"
     cpus="$(online_cpu_count)"
+    min_cpus="${PLATFORM_BUILD_MIN_CPUS[$variant]}"
+    min_memory_gib="${PLATFORM_BUILD_MIN_MEMORY_GIB[$variant]}"
+    preferred_memory_gib="${PLATFORM_BUILD_PREFERRED_MEMORY_GIB[$variant]}"
+    disk_gib="${PLATFORM_BUILD_DISK_GIB[$variant]}"
 
     percent_reserve_mib="$(((
         total_mib * PLATFORM_BUILD_HOST_MEMORY_RESERVE_PERCENT + 99
@@ -116,10 +124,8 @@ select_build_resources() {
     safe_memory_mib="$((
         available_mib - reserve_mib - PLATFORM_BUILD_QEMU_OVERHEAD_MIB
     ))"
-    min_memory_mib="$((PLATFORM_BUILD_MIN_MEMORY_GIB[$variant] * 1024))"
-    preferred_memory_mib="$((
-        PLATFORM_BUILD_PREFERRED_MEMORY_GIB[$variant] * 1024
-    ))"
+    min_memory_mib="$((min_memory_gib * 1024))"
+    preferred_memory_mib="$((preferred_memory_gib * 1024))"
 
     if ((safe_memory_mib < min_memory_mib)); then
         die "Insufficient currently available memory for $variant: ${available_mib} MiB available; $((min_memory_mib + reserve_mib + PLATFORM_BUILD_QEMU_OVERHEAD_MIB)) MiB required (${min_memory_mib} MiB guest + ${reserve_mib} MiB host reserve + ${PLATFORM_BUILD_QEMU_OVERHEAD_MIB} MiB QEMU overhead). Close other workloads and retry. Swap is not required and is not counted."
@@ -133,17 +139,15 @@ select_build_resources() {
     BUILD_SELECTED_MEMORY="${BUILD_SELECTED_MEMORY_MIB}MiB"
 
     safe_cpus="$((cpus - PLATFORM_BUILD_HOST_CPU_RESERVE))"
-    if ((safe_cpus < PLATFORM_BUILD_MIN_CPUS[$variant])); then
-        die "Insufficient online CPUs for $variant: $cpus available; ${PLATFORM_BUILD_MIN_CPUS[$variant]} guest CPUs plus $PLATFORM_BUILD_HOST_CPU_RESERVE host CPU required."
+    if ((safe_cpus < min_cpus)); then
+        die "Insufficient online CPUs for $variant: $cpus available; $min_cpus guest CPUs plus $PLATFORM_BUILD_HOST_CPU_RESERVE host CPU required."
     fi
     BUILD_SELECTED_CPUS="${PLATFORM_BUILD_PREFERRED_CPUS[$variant]}"
     if ((safe_cpus < BUILD_SELECTED_CPUS)); then
         BUILD_SELECTED_CPUS="$safe_cpus"
     fi
 
-    required_disk_gib="$((
-        PLATFORM_BUILD_DISK_GIB[$variant] + PLATFORM_BUILD_HOST_DISK_RESERVE_GIB
-    ))"
+    required_disk_gib="$((disk_gib + PLATFORM_BUILD_HOST_DISK_RESERVE_GIB))"
     if [ "$cache_enabled" = true ]; then
         required_disk_gib="$((
             required_disk_gib + PLATFORM_BUILD_CACHE_SIZE_GIB
@@ -157,7 +161,7 @@ select_build_resources() {
         die "Insufficient Incus storage for $variant: ${available_disk_gib} GiB available; ${required_disk_gib} GiB required."
     fi
 
-    BUILD_SELECTED_DISK="${PLATFORM_BUILD_DISK_GIB[$variant]}GiB"
+    BUILD_SELECTED_DISK="${disk_gib}GiB"
     BUILD_REQUIRED_FREE_GIB="$required_disk_gib"
     BUILD_HOST_TOTAL_MIB="$total_mib"
     BUILD_HOST_AVAILABLE_MIB="$available_mib"

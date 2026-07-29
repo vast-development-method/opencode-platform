@@ -28,8 +28,9 @@ log "Installing host prerequisites"
 sudo apt-get update
 
 incus_candidate="$(apt-cache policy incus | awk '/Candidate:/ {print $2; exit}')"
-[ -n "$incus_candidate" ] && [ "$incus_candidate" != "(none)" ] ||
+if [ -z "$incus_candidate" ] || [ "$incus_candidate" = "(none)" ]; then
     die "No Incus package candidate is available from the host's configured repositories."
+fi
 
 incus_installed="$(
     dpkg-query -W -f='${Version}' incus 2>/dev/null || true

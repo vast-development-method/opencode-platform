@@ -60,7 +60,7 @@ for index in "${!expected[@]}"; do
     }
 done
 
-if rg -n 'vdm-jomla' \
+if grep -R -n 'vdm-jomla' \
     "$ROOT_DIR/image" \
     "$ROOT_DIR/scripts" \
     "$ROOT_DIR/docs" \
