@@ -81,8 +81,22 @@ else
 fi
 
 if image_has_component "$VARIANT" typescript; then
-    assert_version TypeScript "$TYPESCRIPT_EXPECTED_VERSION" "$(guest_output tsc --version | awk '{print $2}')"
-    assert_version TSX "$TSX_EXPECTED_VERSION" "$(guest_output tsx --version | awk 'NR == 1 {print $2}')"
+    assert_version \
+        TypeScript \
+        "$TYPESCRIPT_EXPECTED_VERSION" \
+        "$(guest_output tsc --version | awk 'NR == 1 {print $2}')"
+
+    assert_version \
+        TSX \
+        "$TSX_EXPECTED_VERSION" \
+        "$(
+            guest_output tsx --version |
+                awk 'NR == 1 {
+                    version = $2
+                    sub(/^v/, "", version)
+                    print version
+                }'
+        )"
 fi
 
 if image_has_component "$VARIANT" python; then

@@ -38,11 +38,19 @@ backup servers or production SSH directly.
 
 ## Snapshots
 
-Only stateless stopped snapshots may become shared images. Never publish a stateful snapshot because guest memory
-may contain session tokens.
+Images are published directly from a verified stopped build instance. The
+restricted project blocks snapshots by default, and the launcher does not
+create an implicit `factory` snapshot. Exact stopped-instance exports remain
+available because `restricted.backups=allow`; operators must protect exported
+archives according to the backup policy.
 
 ## Build hygiene
 
 The finaliser removes OpenCode auth files, MCP auth files, shell history, SSH private keys and token-like files.
 The verification test blocks publication if these remain. This is defence in depth, not proof that arbitrary
 secret text never appeared elsewhere; build from a clean base and do not authenticate during image construction.
+
+The managed download cache contains package-manager and Playwright downloads,
+not runtime credentials. It is detached before finalisation is published.
+Release evidence should include at least one `--clean --no-cache` build on an
+independent host.

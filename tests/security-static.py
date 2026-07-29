@@ -16,6 +16,9 @@ class SecurityStaticTest(unittest.TestCase):
         project = yaml.safe_load((ROOT / "incus/projects/vdm-agents.yaml").read_text())
         config = project["config"]
         self.assertEqual("true", config["restricted"])
+        self.assertEqual("false", config["features.networks"])
+        self.assertEqual("allow", config["restricted.backups"])
+        self.assertEqual("block", config["restricted.snapshots"])
         self.assertEqual("managed", config["restricted.devices.disk"])
         self.assertEqual("managed", config["restricted.devices.nic"])
         for key in (
@@ -35,6 +38,25 @@ class SecurityStaticTest(unittest.TestCase):
             self.assertEqual("reject", nic["security.acls.default.egress.action"])
             self.assertEqual("true", nic["security.ipv4_filtering"])
 
+    def test_networks_and_acls_are_explicitly_managed(self) -> None:
+        for path in (ROOT / "incus/networks").glob("*.yaml"):
+            network = yaml.safe_load(path.read_text())
+            self.assertEqual(
+                "vdm-opencode-platform",
+                network["config"]["user.vdm.platform"],
+            )
+        for path in [
+            ROOT / "incus/acls/vdm-build.yaml",
+            *(ROOT / "incus/acls/generated").glob("*.yaml"),
+        ]:
+            acl = yaml.safe_load(path.read_text())
+            self.assertEqual(
+                "vdm-opencode-platform",
+                acl["config"]["user.vdm.platform"],
+            )
+            for rule in [*acl["ingress"], *acl["egress"]]:
+                self.assertEqual("enabled", rule["state"])
+
     def test_connected_policy_denies_private_networks_before_public_allow(self) -> None:
         acl = yaml.safe_load((ROOT / "incus/acls/generated/connected.yaml").read_text())
         rules = acl["egress"]
@@ -53,6 +75,38 @@ class SecurityStaticTest(unittest.TestCase):
         self.assertIn("user.vdm.session.expires_epoch", session)
         for forbidden in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "XAI_API_KEY", "LD_PRELOAD", "BASH_ENV"):
             self.assertNotIn(forbidden, session)
+
+    def test_build_and_launch_avoid_implicit_snapshots(self) -> None:
+        build = (ROOT / "scripts/build-image.sh").read_text()
+        launch = (ROOT / "scripts/launch-vm.sh").read_text()
+        self.assertNotIn("snapshot create", build)
+        self.assertNotIn("snapshot create", launch)
+        self.assertIn(
+            'project_cmd publish "$BUILD_NAME" --alias "$ALIAS" --reuse',
+            build,
+        )
+        self.assertIn('user.vdm.build.state finalized', build)
+        self.assertIn("collect_failure_diagnostics", build)
+        self.assertIn("Build failed. The stopped checkpoint was retained", build)
+        self.assertNotIn(
+            'PLATFORM_IMAGE_DEFAULT_SIZE[$VARIANT]',
+            build,
+            "Build VMs must not inherit launch-time runtime sizes.",
+        )
+
+    def test_bootstrap_never_changes_package_sources_or_coreutils_provider(self) -> None:
+        bootstrap = (ROOT / "scripts/bootstrap-host.sh").read_text()
+        for forbidden in (
+            "gnu-coreutils",
+            "coreutils-from-uutils",
+            "add-apt-repository",
+            "/etc/apt/sources.list",
+            "/etc/apt/sources.list.d",
+            "DOCKER-USER",
+        ):
+            self.assertNotIn(forbidden, bootstrap)
+        self.assertIn("dpkg --audit", bootstrap)
+        self.assertIn("apt-get check", bootstrap)
 
     def test_joomla_defaults_are_local_read_only_and_credential_free(self) -> None:
         example = json.loads(
@@ -78,6 +132,12 @@ class SecurityStaticTest(unittest.TestCase):
         configure = (ROOT / "scripts/configure-joomla-mcp.sh").read_text()
         self.assertIn("allowIndefinite: false", configure)
         self.assertNotIn("--env JOOMLA_MCP_SITE_TOKEN", configure)
+
+        session = (
+            ROOT / "image/files/usr/local/libexec/vdm-opencode-session"
+        ).read_text()
+        self.assertIn("/usr/local/bin/vdm-joomla-mcp-live-test", session)
+        self.assertNotIn("vdm-jomla", session)
 
     def test_all_provider_routes_exist(self) -> None:
         config = yaml.safe_load((ROOT / "broker/config/litellm.yaml").read_text())

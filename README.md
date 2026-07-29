@@ -17,6 +17,7 @@ cp .env.example .env
 ./tests/validate-repository.sh
 ./scripts/bootstrap-host.sh
 ./scripts/apply-incus.sh
+./scripts/ci/check-incus-runner.sh php
 
 export LOCAL_BUILD_VARIANTS=php
 ./scripts/local-image-release.sh
@@ -24,6 +25,21 @@ export LOCAL_BUILD_VARIANTS=php
 ```
 
 An existing VM created from an older image does not gain newly installed packages. Launch or replace it from the new versioned PHP image.
+
+`bootstrap-host.sh` first verifies APT/dpkg and the host's essential `cp`, `mv`
+and `rm` providers. It installs the newest Incus candidate from repositories
+already configured by the operator, but never adds/removes a package source,
+changes the coreutils provider, or alters Docker firewall rules. An Incus
+upgrade is refused while instances are running unless the operator explicitly
+schedules and acknowledges that downtime.
+
+Image builds use manifest-owned build limits, not the larger launch-time VM
+sizes. The preflight reserves at least 20% of host memory, ignores swap as a
+capacity source, leaves a host CPU available, and creates nothing when current
+capacity is insufficient. Failed builds are stopped and retained as resumable
+checkpoints with diagnostics under `build/diagnostics/`. Verified APT, npm,
+pip and Playwright downloads are reused from a managed cache that is detached
+before an image is published.
 
 ## Configure Joomla MCP
 
@@ -90,6 +106,7 @@ Start with:
 - `docs/joomla-mcp-study.md`
 - `docs/credentials-and-brokers.md`
 - `docs/local-image-builds.md`
+- `docs/host-and-network-safety.md`
 - `docs/versioning-and-promotion.md`
 
 ## Licence and ownership

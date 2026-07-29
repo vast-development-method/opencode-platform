@@ -78,7 +78,7 @@ case "$VDM_SESSION_MODE" in
             exit 2
         }
         install -d -m 0750 "$VDM_JOOMLA_TEST_OUTPUT"
-        exec /usr/local/bin/vdm-jomla-mcp-live-test \
+        exec /usr/local/bin/vdm-joomla-mcp-live-test \
             --config /etc/joomla-mcp/sites.json \
             --site "$VDM_JOOMLA_SITE_ALIAS" \
             --profile read \

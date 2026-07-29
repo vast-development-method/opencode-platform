@@ -27,12 +27,14 @@ if command -v shellcheck >/dev/null 2>&1; then
 fi
 
 bash "$ROOT_DIR/tests/variant-selection.sh" || fail=1
+bash "$ROOT_DIR/tests/build-resources.sh" || fail=1
 python3 "$ROOT_DIR/scripts/generate-platform.py" --check || fail=1
 python3 -m unittest "$ROOT_DIR/tests/test_platform_manifest.py" || fail=1
 python3 -m unittest "$ROOT_DIR/tests/security-static.py" || fail=1
 bash "$ROOT_DIR/tests/generated-platform.sh" || fail=1
 bash "$ROOT_DIR/tests/joomla-mcp-integration.sh" || fail=1
 bash "$ROOT_DIR/tests/joomla-mcp-configure.sh" || fail=1
+bash "$ROOT_DIR/tests/guest-exec.sh" || fail=1
 bash "$ROOT_DIR/tests/runtime-credentials.sh" || fail=1
 bash "$ROOT_DIR/tests/session-secret-transport.sh" || fail=1
 bash "$ROOT_DIR/tests/reaper.sh" || fail=1

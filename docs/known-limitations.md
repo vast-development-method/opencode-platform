@@ -2,6 +2,9 @@
 
 - Static and mocked validation is available, but the six real Incus images have
   not yet been built in this delivery environment.
+- Build-resource selection, resumable checkpoints and cache detachment are
+  covered by repository tests, but release promotion still requires a real
+  clean `--no-cache` build on two independent hardware-virtualisation hosts.
 - JoomEngine MCP for Joomla `0.7.0` is now pinned, installed and fail-closed in
   PHP/full images, but upstream still retains live-production evidence gates for
   action families. This repository's safe helper proves only the configured

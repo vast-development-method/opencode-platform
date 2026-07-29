@@ -17,8 +17,14 @@ secrets in `.env`.
 ```bash
 ./scripts/bootstrap-host.sh
 ./scripts/apply-incus.sh
-./scripts/ci/check-incus-runner.sh
+./scripts/ci/check-incus-runner.sh php
 ```
+
+The bootstrap fails before package installation when APT/dpkg is inconsistent
+or essential core utilities are missing. It upgrades Incus only to the newest
+candidate in repositories already configured by the operator. It does not add
+a third-party repository, replace core utilities, install OVN/Open vSwitch, or
+change Docker/firewall configuration.
 
 ## 3. Build one image
 
@@ -34,6 +40,20 @@ For web/TypeScript:
 ./scripts/build-image.sh typescript
 ```
 
+The build command repeats the resource preflight before creating anything.
+Runtime size profiles are not build profiles: TypeScript normally builds with
+4 CPUs and 8 GiB, can safely fall back no lower than 2 CPUs and 6 GiB, and
+always preserves the manifest's host-memory and QEMU reserve. Swap is not
+required or counted.
+
+If provisioning fails, rerun the same command. The stopped checkpoint resumes
+completed stages, and cached Playwright/APT/npm/pip downloads are reused. For a
+deliberately clean verification build:
+
+```bash
+./scripts/build-image.sh --clean --no-cache typescript
+```
+
 Build every variant only on a dedicated builder with sufficient disk space:
 
 ```bash
@@ -42,6 +62,9 @@ Build every variant only on a dedicated builder with sufficient disk space:
 
 A platform upgrade that changes the PHP image requires rebuilding and relaunching from the new versioned alias.
 Existing instances do not acquire newly installed packages merely because the repository changed.
+
+The verified stopped build VM is published directly. No temporary full-disk
+snapshot is created.
 
 ## 4. Launch a personal VM
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.0-rc.3 - 2026-07-29
+
+- Separated adaptive image-build resources from launch-time runtime sizes,
+  reserving host memory/CPU and failing before Incus changes when current
+  capacity is insufficient.
+- Added resumable stopped build checkpoints, non-secret failure diagnostics and
+  a detached managed cache for APT, npm, pip and Playwright downloads.
+- Removed unnecessary build and first-launch snapshots; verified images now
+  publish directly from stopped instances.
+- Moved bridge/ACL ownership to the Incus default project, added collision and
+  legacy-migration guards, made ACL state explicit and retained restricted
+  project isolation.
+- Hardened host bootstrap around dpkg/APT health, active Incus upgrades and
+  latest configured package candidates without changing repositories,
+  coreutils providers, Docker or firewall policy.
+- Fixed TSX version normalisation, replaced an undeclared Python `uv`
+  dependency with the installed `pipx`, and corrected the Joomla live-test
+  executable typo with an executed guest-dispatch regression test.
+- Added complete host, hardware, caching, recovery and network documentation.
+
 ## 0.3.0-rc.2 - 2026-07-27
 
 - Added `joomla-mcp` as a manifest-owned composable capability for PHP and full images.

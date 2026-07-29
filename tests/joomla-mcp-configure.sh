@@ -2,12 +2,14 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp_dir="$(mktemp -d)"
+runtime_base="$(mktemp -d /dev/shm/vdm-opencode-test.XXXXXX)"
 instance="joomla-config-test-$$"
-runtime_file="/run/user/${UID}/vdm-opencode/${instance}.env"
-trap 'rm -rf "$tmp_dir"; rm -f "$runtime_file"' EXIT
+runtime_file="${runtime_base}/vdm-opencode/${instance}.env"
+trap 'rm -rf "$tmp_dir" "$runtime_base"' EXIT
 
 export PATH="$ROOT_DIR/tests/fixtures/joomla:$PATH"
 export CAPTURE_CONFIG="$tmp_dir/config.json"
+export VDM_RUNTIME_BASE="$runtime_base"
 
 "$ROOT_DIR/scripts/configure-joomla-mcp.sh" \
     "$instance" https://www.example.com company readonly >/dev/null

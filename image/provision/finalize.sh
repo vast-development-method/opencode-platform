@@ -64,7 +64,9 @@ rm -rf \
   /var/log/journal/* \
   /var/lib/cloud/instances/* \
   /var/lib/dhcp/* \
+  /var/lib/vdm-opencode-build \
   /opt/vdm-build
+rm -f /etc/apt/apt.conf.d/90-vdm-build-cache
 apt-get clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 chown -R "$AGENT_USER:$AGENT_USER" "$AGENT_HOME" /workspace

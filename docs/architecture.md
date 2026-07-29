@@ -50,3 +50,9 @@ must be explicitly retained or pushed to CI artifact storage.
 
 Use Incus projects for organisational separation, profiles for resource classes and versioned images for rollout.
 For large central installations, add an Incus cluster and a dedicated image-builder project.
+
+The restricted workload project shares two host-managed Incus bridge networks
+from the `default` project (`features.networks=false`). This matches Incus
+project isolation: the project may use only the two names listed by
+`restricted.networks.access`, while network lifecycle remains with the host
+administrator. No OVN or Open vSwitch service is required.

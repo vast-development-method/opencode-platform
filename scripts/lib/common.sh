@@ -62,6 +62,17 @@ project_cmd() {
     incus_cmd --project "$INCUS_PROJECT" "$@"
 }
 
+default_cmd() {
+    incus_cmd --project default "$@"
+}
+
+version_at_least() {
+    local actual="${1:?actual version required}"
+    local minimum="${2:?minimum version required}"
+
+    [ "$(printf '%s\n%s\n' "$minimum" "$actual" | sort -V | head -n 1)" = "$minimum" ]
+}
+
 wait_for_vm() {
     local name="$1"
     local _

@@ -4,3 +4,5 @@ config:
   ipv4.nat: "true"
   ipv4.dhcp: "true"
   ipv6.address: none
+  user.vdm.managed: "true"
+  user.vdm.platform: vdm-opencode-platform
