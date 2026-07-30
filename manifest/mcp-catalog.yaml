@@ -7,6 +7,7 @@ servers:
     transport: stdio
     source: https://github.com/modelcontextprotocol/servers/tree/main/src/git
     package: mcp-server-git
+    version: 2026.7.10
     note: Early development; restrict repository path to /workspace.
   joomla:
     status: installed-disabled-on-php-images
@@ -43,6 +44,7 @@ servers:
     transport: stdio
     source: https://github.com/microsoft/playwright-mcp
     package: "@playwright/mcp"
+    version: 0.0.78
     note: Prefer deterministic Playwright tests for suites; keep MCP for exploratory QA.
   speech_to_text:
     status: optional

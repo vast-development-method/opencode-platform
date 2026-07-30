@@ -6,25 +6,35 @@
 git clone https://github.com/vast-development-method/opencode-platform.git
 cd opencode-platform
 cp .env.example .env
-./tests/validate-repository.sh
+make ci
 ```
 
 Use `GITEA_BASE_URL` and `INCUS_STORAGE_POOL` in `.env` when the defaults do not match the host. Do not place
 secrets in `.env`.
 
+The host path supports Ubuntu 24.04 LTS and 26.04 LTS, on server and desktop
+installations. The built VM remains Ubuntu 24.04 LTS on either host.
+
 ## 2. Prepare Incus
 
 ```bash
 ./scripts/bootstrap-host.sh
-./scripts/apply-incus.sh
 ./scripts/ci/check-incus-runner.sh php
 ```
+
+Bootstrap already applies the Incus resources and installs the expiry timer;
+running `apply-incus.sh` again is safe but unnecessary.
 
 The bootstrap fails before package installation when APT/dpkg is inconsistent
 or essential core utilities are missing. It upgrades Incus only to the newest
 candidate in repositories already configured by the operator. It does not add
 a third-party repository, replace core utilities, install OVN/Open vSwitch, or
 change Docker/firewall configuration.
+
+When needed, bootstrap adds the invoking account to `incus-admin`. This group is
+root-equivalent. Log out and back in after the command reports that membership
+was added; normal platform commands deliberately do not fall back to `sudo`
+after an arbitrary Incus failure.
 
 ## 3. Build one image
 
@@ -65,6 +75,11 @@ Existing instances do not acquire newly installed packages merely because the re
 
 The verified stopped build VM is published directly. No temporary full-disk
 snapshot is created.
+
+The expiry timer executes a root-owned copy under `/usr/local/libexec`; it does
+not execute the checkout under the operator's home directory. The unit keeps
+home directories hidden and grants write access only to the Incus runtime path
+and its private state directory.
 
 ## 4. Launch a personal VM
 

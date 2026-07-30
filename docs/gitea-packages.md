@@ -22,6 +22,16 @@ export GITEA_PACKAGE_TOKEN='runtime-only-token'
 
 The publisher token needs package write permission only. Colleagues should receive read-only package access.
 
+Publication is safe to retry. The release entry uses `manifest.json`'s
+`packaged_at` value, the bundle is verified by downloading it again, and an
+existing completion marker is extracted with a strict member allow-list before
+its release entry is compared. A valid existing marker completes the retry
+without regenerating a potentially non-deterministic signature bundle.
+
+In release mode, retries of an existing signed marker also require
+`COSIGN_PUBLIC_KEY` so the downloaded marker can be verified
+cryptographically. First publication continues to require `COSIGN_KEY`.
+
 Tagged GitHub builds can publish the same package set to Gitea when repository variable
 `GITEA_PUBLISH_ENABLED=true`, variable `GITEA_BASE_URL`, owner/user variables and secret
 `GITEA_PACKAGE_TOKEN` are configured. Gitea tag builds publish directly through `.gitea/workflows/build-images.yaml`.

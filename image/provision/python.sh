@@ -1,29 +1,31 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 export DEBIAN_FRONTEND=noninteractive
+AGENT_USER="${AGENT_USER:-opencode}"
+AGENT_HOME="${AGENT_HOME:-/home/${AGENT_USER}}"
 
 apt-get update
 apt-get install -y --no-install-recommends \
     python3-dev \
     python3-pytest
 
-sudo -u opencode -H env \
-    PIPX_HOME=/home/opencode/.local/share/pipx \
-    PIPX_BIN_DIR=/home/opencode/.local/bin \
-    PIP_CACHE_DIR="${PIP_CACHE_DIR:-/home/opencode/.cache/pip}" \
+sudo -u "$AGENT_USER" -H env \
+    PIPX_HOME="$AGENT_HOME/.local/share/pipx" \
+    PIPX_BIN_DIR="$AGENT_HOME/.local/bin" \
+    PIP_CACHE_DIR="${PIP_CACHE_DIR:-$AGENT_HOME/.cache/pip}" \
     pipx install --force "${RUFF_PACKAGE:?RUFF_PACKAGE is required}"
-sudo -u opencode -H env \
-    PIPX_HOME=/home/opencode/.local/share/pipx \
-    PIPX_BIN_DIR=/home/opencode/.local/bin \
-    PIP_CACHE_DIR="${PIP_CACHE_DIR:-/home/opencode/.cache/pip}" \
+sudo -u "$AGENT_USER" -H env \
+    PIPX_HOME="$AGENT_HOME/.local/share/pipx" \
+    PIPX_BIN_DIR="$AGENT_HOME/.local/bin" \
+    PIP_CACHE_DIR="${PIP_CACHE_DIR:-$AGENT_HOME/.cache/pip}" \
     pipx install --force "${MYPY_PACKAGE:?MYPY_PACKAGE is required}"
 
 installed_ruff="$(
-    sudo -u opencode -H /home/opencode/.local/bin/ruff --version |
+    sudo -u "$AGENT_USER" -H "$AGENT_HOME/.local/bin/ruff" --version |
         awk 'NR == 1 {print $2}'
 )"
 installed_mypy="$(
-    sudo -u opencode -H /home/opencode/.local/bin/mypy --version |
+    sudo -u "$AGENT_USER" -H "$AGENT_HOME/.local/bin/mypy" --version |
         awk 'NR == 1 {print $2}'
 )"
 [ "$installed_ruff" = "$RUFF_EXPECTED_VERSION" ] || {

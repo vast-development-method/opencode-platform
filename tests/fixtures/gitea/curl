@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+cat >/dev/null
+method=GET
+output=
+write_out=
+upload=
+url=
+while (($# > 0)); do
+    case "$1" in
+        --config|--retry|--connect-timeout)
+            shift 2
+            ;;
+        --request)
+            method="${2:?request method required}"
+            shift 2
+            ;;
+        --output)
+            output="${2:?output path required}"
+            shift 2
+            ;;
+        --write-out)
+            write_out="${2:?write-out value required}"
+            shift 2
+            ;;
+        --upload-file)
+            upload="${2:?upload path required}"
+            shift 2
+            ;;
+        --silent|--show-error|--retry-all-errors|--fail-with-body)
+            shift
+            ;;
+        http://*|https://*)
+            url="$1"
+            shift
+            ;;
+        *)
+            printf 'Unexpected mock curl argument: %s\n' "$1" >&2
+            exit 2
+            ;;
+    esac
+done
+
+[ -n "$url" ] || {
+    printf 'Mock curl did not receive a URL.\n' >&2
+    exit 2
+}
+remote="${MOCK_GITEA_ROOT:?MOCK_GITEA_ROOT is required}/${url##*/}"
+status=200
+case "$method" in
+    HEAD)
+        [ -f "$remote" ] || status=404
+        ;;
+    PUT)
+        [ -n "$upload" ] || {
+            printf 'Mock PUT did not receive --upload-file.\n' >&2
+            exit 2
+        }
+        install -D -m 0600 "$upload" "$remote"
+        status=201
+        ;;
+    GET)
+        [ -f "$remote" ] || exit 22
+        [ -n "$output" ] || {
+            printf 'Mock GET did not receive --output.\n' >&2
+            exit 2
+        }
+        if [ "$output" != /dev/null ]; then
+            install -m 0600 "$remote" "$output"
+        fi
+        ;;
+    *)
+        printf 'Unsupported mock curl method: %s\n' "$method" >&2
+        exit 2
+        ;;
+esac
+
+if [ -n "$write_out" ]; then
+    [ "$write_out" = '%{http_code}' ] || {
+        printf 'Unsupported mock curl format: %s\n' "$write_out" >&2
+        exit 2
+    }
+    printf '%s' "$status"
+fi

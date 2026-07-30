@@ -33,6 +33,13 @@ changes the coreutils provider, or alters Docker firewall rules. An Incus
 upgrade is refused while instances are running unless the operator explicitly
 schedules and acknowledges that downtime.
 
+The host workflow targets Ubuntu 24.04 LTS and Ubuntu 26.04 LTS on both server
+and desktop installations. Minimal installations are supported: cosmetic
+formatters such as `column` are optional. The guest images intentionally remain
+based on Ubuntu 24.04 LTS so host upgrades do not silently change the generated
+runtime. Run `make ci` before bootstrap to execute repository, runtime-mock and
+package round-trip checks.
+
 Image builds use manifest-owned build limits, not the larger launch-time VM
 sizes. The preflight reserves at least 20% of host memory, ignores swap as a
 capacity source, leaves a host CPU available, and creates nothing when current
@@ -40,6 +47,12 @@ capacity is insufficient. Failed builds are stopped and retained as resumable
 checkpoints with diagnostics under `build/diagnostics/`. Verified APT, npm,
 pip and Playwright downloads are reused from a managed cache that is detached
 before an image is published.
+
+Bootstrap installs the expiry reaper beneath `/usr/local/libexec` as root-owned
+code. The root service never executes scripts from the Git checkout. Normal
+commands require direct Incus access; bootstrap adds the invoking operator to
+`incus-admin` when necessary and requires a new login before unprivileged use.
+Treat that group as root-equivalent.
 
 ## Configure Joomla MCP
 

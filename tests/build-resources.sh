@@ -6,6 +6,9 @@ source "$ROOT_DIR/scripts/lib/common.sh"
 # shellcheck disable=SC1091
 source "$ROOT_DIR/scripts/lib/build-resources.sh"
 
+test_output="$(mktemp)"
+trap 'rm -f "$test_output"' EXIT
+
 export VDM_TEST_MEM_TOTAL_MIB=14336
 export VDM_TEST_MEM_AVAILABLE_MIB=12288
 export VDM_TEST_CPU_COUNT=8
@@ -21,26 +24,24 @@ select_build_resources typescript default true
 export VDM_TEST_MEM_AVAILABLE_MIB=3482
 if (
     select_build_resources typescript default true
-) >"$ROOT_DIR/build-resource-test.out" 2>&1; then
+) >"$test_output" 2>&1; then
     printf 'The TypeScript resource plan accepted unsafe available memory.\n' >&2
     exit 1
 fi
 grep -F 'Insufficient currently available memory for typescript' \
-    "$ROOT_DIR/build-resource-test.out" >/dev/null
+    "$test_output" >/dev/null
 grep -F 'Swap is not required and is not counted.' \
-    "$ROOT_DIR/build-resource-test.out" >/dev/null
-rm -f "$ROOT_DIR/build-resource-test.out"
+    "$test_output" >/dev/null
 
 export VDM_TEST_MEM_AVAILABLE_MIB=12288
 export VDM_TEST_DISK_AVAILABLE_GIB=119
 if (
     select_build_resources typescript default true
-) >"$ROOT_DIR/build-resource-test.out" 2>&1; then
+) >"$test_output" 2>&1; then
     printf 'The TypeScript resource plan accepted unsafe free storage.\n' >&2
     exit 1
 fi
 grep -F 'Insufficient Incus storage for typescript' \
-    "$ROOT_DIR/build-resource-test.out" >/dev/null
-rm -f "$ROOT_DIR/build-resource-test.out"
+    "$test_output" >/dev/null
 
 printf 'Build resource tests passed.\n'

@@ -14,9 +14,16 @@ case "$STATE" in true|false) ;; *) die "State must be true or false" ;; esac
 
 # The single-quoted program is evaluated inside the guest, where the injected variables exist.
 # shellcheck disable=SC2016
-project_cmd exec "$NAME" --env "MCP_SERVER=$SERVER" --env "MCP_STATE=$STATE" -- bash -c '
+project_cmd exec "$NAME" \
+    --env "MCP_SERVER=$SERVER" \
+    --env "MCP_STATE=$STATE" \
+    --env "AGENT_USER=$AGENT_USER" \
+    --env "AGENT_HOME=$AGENT_HOME" \
+    -- bash -c '
 set -Eeuo pipefail
-config="/home/opencode/.config/opencode/opencode.json"
+: "${AGENT_USER:?agent user is required}"
+: "${AGENT_HOME:?agent home is required}"
+config="$AGENT_HOME/.config/opencode/opencode.json"
 jq -e --arg server "$MCP_SERVER" ".mcp[\$server] != null" "$config" >/dev/null || {
     printf "Unknown MCP server: %s\n" "$MCP_SERVER" >&2
     exit 1
@@ -44,6 +51,6 @@ tmp="$(mktemp)"
 jq --arg server "$MCP_SERVER" --argjson state "$MCP_STATE" \
   ".mcp[\$server].enabled = \$state" \
   "$config" > "$tmp"
-install -o opencode -g opencode -m 0640 "$tmp" "$config"
+install -o "$AGENT_USER" -g "$AGENT_USER" -m 0640 "$tmp" "$config"
 rm -f "$tmp"
 '

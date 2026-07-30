@@ -69,7 +69,9 @@ build_fingerprint="$(
             "$PLATFORM_VERSION" \
             "$VARIANT" \
             "${PLATFORM_IMAGE_COMPONENTS[$VARIANT]}" \
-            "$BUILD_SELECTED_DISK"
+            "$BUILD_SELECTED_DISK" \
+            "$AGENT_USER" \
+            "$AGENT_HOME"
         while IFS= read -r -d '' path; do
             sha256sum "$path"
         done < <(
@@ -308,6 +310,7 @@ wait_for_vm "$BUILD_NAME" || die "VM agent did not become ready: $BUILD_NAME"
 
 COMMON_ENV=(
     "AGENT_USER=$AGENT_USER"
+    "AGENT_HOME=$AGENT_HOME"
     "NODE_MAJOR=$NODE_MAJOR"
     "NODESOURCE_SETUP_SHA256=$NODESOURCE_SETUP_SHA256"
     "OPENCODE_PACKAGE=$OPENCODE_PACKAGE"
@@ -389,6 +392,7 @@ if [ "$build_state" = provisioning ]; then
     project_cmd exec "$BUILD_NAME" \
         --env "PLATFORM_VERSION=$PLATFORM_VERSION" \
         --env "AGENT_USER=$AGENT_USER" \
+        --env "AGENT_HOME=$AGENT_HOME" \
         -- bash /opt/vdm-build/finalize.sh "$VARIANT"
     project_cmd config set "$BUILD_NAME" user.vdm.build.state finalized
 fi

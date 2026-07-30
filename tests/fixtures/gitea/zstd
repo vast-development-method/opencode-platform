@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+output=
+while (($# > 0)); do
+    case "$1" in
+        -o)
+            output="${2:?output path required}"
+            shift 2
+            ;;
+        --quiet|--threads=0|-19)
+            shift
+            ;;
+        *)
+            printf 'Unexpected mock zstd argument: %s\n' "$1" >&2
+            exit 2
+            ;;
+    esac
+done
+[ -n "$output" ] || {
+    printf 'Mock zstd did not receive an output path.\n' >&2
+    exit 2
+}
+cat > "$output"

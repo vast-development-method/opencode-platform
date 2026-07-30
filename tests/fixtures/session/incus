@@ -2,7 +2,8 @@
 set -Eeuo pipefail
 
 if [ "${1:-}" = info ]; then
-    exit 0
+    [ "${MOCK_INCUS_DIRECT_ACCESS:-true}" = true ]
+    exit
 fi
 if [ "${1:-}" = --project ]; then
     shift 2
@@ -17,10 +18,21 @@ if [ "${1:-}" = exec ] && [[ "$*" == *'.mcp.joomla.enabled == true'* ]]; then
 fi
 
 case "${1:-}:${2:-}" in
+    image:show|init:*)
+        exit 0
+        ;;
+    info:*)
+        [ "${MOCK_INCUS_INSTANCE_EXISTS:-true}" = true ]
+        exit
+        ;;
+    start:*)
+        [ "${MOCK_INCUS_START_FAIL:-false}" != true ]
+        exit
+        ;;
     list:--format)
         cat "${MOCK_INCUS_LIST:?MOCK_INCUS_LIST is required for list}"
         ;;
-    info:*|start:*|stop:*|config:set|config:unset|file:push|exec:*)
+    stop:*|delete:*|config:set|config:unset|file:push|exec:*)
         exit 0
         ;;
     *)

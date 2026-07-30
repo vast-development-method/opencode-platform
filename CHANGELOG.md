@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- Made VM launch metadata atomic, safe when `USER` is absent, and self-cleaning
+  when a newly created instance cannot start.
+- Replaced the checkout-based root timer target with a root-owned installed
+  runtime and tightened the systemd service sandbox.
+- Replaced implicit Incus sudo fallback with explicit privilege selection and
+  bootstrap-managed `incus-admin` onboarding.
+- Made Gitea publication retries validate an existing semantic completion
+  marker and derive release time from the immutable package manifest.
+- Fixed guest runtime cleanup, minimal-host VM listing, configurable agent
+  home/user support, and browser-MCP image invariants.
+- Added executing runtime and publication regressions, semantic authority
+  validation, and a local `make ci` target.
+
 ## 0.3.0-rc.3 - 2026-07-29
 
 - Separated adaptive image-build resources from launch-time runtime sizes,
