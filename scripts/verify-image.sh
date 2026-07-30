@@ -31,6 +31,8 @@ project_cmd exec "$INSTANCE" -- test ! -e "$AGENT_HOME/.local/share/opencode/mcp
 project_cmd exec "$INSTANCE" -- test ! -e /opt/vdm-build
 project_cmd exec "$INSTANCE" -- test ! -s /etc/machine-id
 project_cmd exec "$INSTANCE" -- bash -c '! compgen -G "/etc/ssh/ssh_host_*" >/dev/null'
+# This expression is intentionally expanded by the guest shell.
+# shellcheck disable=SC2016
 project_cmd exec "$INSTANCE" --env "AGENT_HOME=$AGENT_HOME" -- bash -c \
     '! find "$AGENT_HOME" -xdev -type f \
         \( -name "id_rsa*" -o -name "id_ed25519*" -o -name ".git-credentials" \

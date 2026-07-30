@@ -9,9 +9,8 @@ export MOCK_INCUS_LOG="$tmp_dir/incus.log"
 export MOCK_GITEA_ROOT="$tmp_dir/gitea"
 export MOCK_COSIGN_LOG="$tmp_dir/cosign.log"
 install -d -m 0700 "$MOCK_GITEA_ROOT"
-credential_name=GITEA_PACKAGE_TOKEN
-printf -v "$credential_name" '%s' test-token
-export "$credential_name"
+printf -v GITEA_PACKAGE_TOKEN '%s' test-token
+export GITEA_PACKAGE_TOKEN
 
 package_dir="$tmp_dir/package"
 "$ROOT_DIR/scripts/package-image.sh" base "$package_dir" >/dev/null
