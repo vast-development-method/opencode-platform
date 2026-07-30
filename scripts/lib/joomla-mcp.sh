@@ -44,7 +44,7 @@ validate_joomla_mcp_runtime_credentials() {
 
     for key in "${required_keys[@]}"; do
         allowed_runtime_key "$key" ||
-            die "Jomla MCP configuration requests an unsupported credential: $key"
+            die "Joomla MCP configuration requests an unsupported credential: $key"
         runtime_value_present "$runtime_file" "$key" ||
             die "Set $key in the protected runtime credential file before starting Joomla MCP"
         if [ "$key" = JOOMLA_MCP_APPROVAL_SECRET ]; then

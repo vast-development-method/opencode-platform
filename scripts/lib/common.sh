@@ -50,12 +50,46 @@ duration_to_seconds() {
     esac
 }
 
-incus_cmd() {
-    if incus info >/dev/null 2>&1; then
-        incus "$@"
-    else
-        sudo incus "$@"
+declare -ag VDM_INCUS_COMMAND=()
+
+resolve_incus_command() {
+    local direct_error
+    local sudo_mode="${VDM_INCUS_USE_SUDO:-false}"
+
+    (("${#VDM_INCUS_COMMAND[@]}" == 0)) || return 0
+    require_command incus
+    case "$sudo_mode" in
+        true|false) ;;
+        *) die "VDM_INCUS_USE_SUDO must be true or false" ;;
+    esac
+
+    if direct_error="$(incus info 2>&1)"; then
+        VDM_INCUS_COMMAND=(incus)
+        return 0
     fi
+
+    if [ "$sudo_mode" != true ]; then
+        if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+            die "Incus is installed but its daemon is unavailable: ${direct_error:-no diagnostic returned}"
+        fi
+        die "Direct Incus access failed. Ensure the daemon is running and the operator has active incus-admin membership (log out and back in after bootstrap). Set VDM_INCUS_USE_SUDO=true only for an explicitly privileged invocation. Incus reported: ${direct_error:-no diagnostic returned}"
+    fi
+
+    require_command sudo
+    if [ -t 0 ] && [ -t 1 ]; then
+        sudo incus info >/dev/null ||
+            die "Unable to contact Incus through the explicitly enabled sudo path"
+        VDM_INCUS_COMMAND=(sudo incus)
+    else
+        sudo -n incus info >/dev/null ||
+            die "Non-interactive sudo access to Incus is unavailable; grant direct incus-admin access or configure a narrowly scoped non-interactive policy"
+        VDM_INCUS_COMMAND=(sudo -n incus)
+    fi
+}
+
+incus_cmd() {
+    resolve_incus_command
+    "${VDM_INCUS_COMMAND[@]}" "$@"
 }
 
 project_cmd() {
@@ -83,6 +117,30 @@ wait_for_vm() {
         sleep 2
     done
     return 1
+}
+
+stop_guest_sessions() {
+    local name="${1:?instance name required}"
+
+    # The single-quoted command is intentionally evaluated inside the guest.
+    # shellcheck disable=SC2016
+    project_cmd exec "$name" -- bash -c \
+        'systemctl list-units --type=service --all --no-legend "vdm-opencode-*.service" |
+         awk "{print \$1}" | xargs -r systemctl stop' >/dev/null 2>&1 ||
+        true
+}
+
+cleanup_guest_runtime() {
+    local name="${1:?instance name required}"
+
+    # `find` receives the pattern literally and evaluates it in the guest.
+    project_cmd exec "$name" -- find /run \
+        -mindepth 1 \
+        -maxdepth 1 \
+        -type d \
+        \( -name vdm-opencode-input -o -name 'vdm-opencode-*' \) \
+        -exec rm -rf -- {} + >/dev/null 2>&1 ||
+        true
 }
 
 variant_exists() {

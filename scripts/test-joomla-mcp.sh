@@ -78,6 +78,7 @@ project_cmd exec "$NAME" -- systemd-run \
     --property="LoadCredential=session.env:$GUEST_CREDENTIAL" \
     --setenv="VDM_SESSION_ID=$SESSION_ID" \
     --setenv="VDM_SESSION_MODE=joomla-read-test" \
+    --setenv="VDM_AGENT_USER=$AGENT_USER" \
     --setenv="VDM_AGENT_HOME=$AGENT_HOME" \
     --setenv="VDM_WORKSPACE_ROOT=$WORKSPACE_ROOT" \
     --setenv="VDM_JOOMLA_SITE_ALIAS=$SITE_ALIAS" \

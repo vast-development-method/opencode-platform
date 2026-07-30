@@ -30,6 +30,7 @@ bash "$ROOT_DIR/tests/variant-selection.sh" || fail=1
 bash "$ROOT_DIR/tests/build-resources.sh" || fail=1
 python3 "$ROOT_DIR/scripts/generate-platform.py" --check || fail=1
 python3 -m unittest "$ROOT_DIR/tests/test_platform_manifest.py" || fail=1
+python3 -m unittest "$ROOT_DIR/tests/test_authorities.py" || fail=1
 python3 -m unittest "$ROOT_DIR/tests/security-static.py" || fail=1
 bash "$ROOT_DIR/tests/generated-platform.sh" || fail=1
 bash "$ROOT_DIR/tests/joomla-mcp-integration.sh" || fail=1
@@ -38,9 +39,12 @@ bash "$ROOT_DIR/tests/guest-exec.sh" || fail=1
 bash "$ROOT_DIR/tests/runtime-credentials.sh" || fail=1
 bash "$ROOT_DIR/tests/session-secret-transport.sh" || fail=1
 bash "$ROOT_DIR/tests/reaper.sh" || fail=1
+bash "$ROOT_DIR/tests/runtime-regressions.sh" || fail=1
+bash "$ROOT_DIR/tests/publish-idempotency.sh" || fail=1
+bash "$ROOT_DIR/tests/systemd-units.sh" || fail=1
 
 if command -v make >/dev/null 2>&1; then
-    make -C "$ROOT_DIR" --dry-run help local-release >/dev/null || fail=1
+    make -C "$ROOT_DIR" --dry-run help ci local-release >/dev/null || fail=1
 fi
 
 while IFS= read -r -d '' json; do

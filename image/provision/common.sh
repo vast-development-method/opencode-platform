@@ -2,9 +2,21 @@
 set -Eeuo pipefail
 
 AGENT_USER="${AGENT_USER:-opencode}"
-AGENT_HOME="/home/${AGENT_USER}"
+AGENT_HOME="${AGENT_HOME:-/home/${AGENT_USER}}"
 BUILD_CACHE_DIR="${VDM_BUILD_CACHE_DIR:-}"
 export DEBIAN_FRONTEND=noninteractive
+
+[[ "$AGENT_USER" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] || {
+    printf 'Unsafe agent user: %s\n' "$AGENT_USER" >&2
+    exit 1
+}
+if [[ ! "$AGENT_HOME" =~ ^/(home|srv)/[A-Za-z0-9._/-]+$ ]] ||
+    [[ "/${AGENT_HOME#/}/" == *'/../'* ]] ||
+    [[ "/${AGENT_HOME#/}/" == *'/./'* ]] ||
+    [[ "$AGENT_HOME" == *'//'* ]]; then
+    printf 'Unsafe agent home: %s\n' "$AGENT_HOME" >&2
+    exit 1
+fi
 
 if [ -n "$BUILD_CACHE_DIR" ]; then
     install -d -m 0755 \
@@ -42,7 +54,24 @@ apt-get install -y --no-install-recommends \
     zip
 
 if ! id "$AGENT_USER" >/dev/null 2>&1; then
-    useradd --create-home --shell /bin/bash "$AGENT_USER"
+    useradd --create-home --home-dir "$AGENT_HOME" --shell /bin/bash "$AGENT_USER"
+else
+    account_home="$(getent passwd "$AGENT_USER" | cut -d: -f6)"
+    [ "$account_home" = "$AGENT_HOME" ] || {
+        printf 'Existing user %s has home %s, expected %s\n' \
+            "$AGENT_USER" "$account_home" "$AGENT_HOME" >&2
+        exit 1
+    }
+fi
+
+template_home=/home/opencode
+if [ "$AGENT_HOME" != "$template_home" ] && [ -d "$template_home" ]; then
+    [[ "$AGENT_HOME" != "$template_home/"* ]] || {
+        printf 'Agent home cannot be nested below the template home: %s\n' "$AGENT_HOME" >&2
+        exit 1
+    }
+    cp -a "$template_home/." "$AGENT_HOME/"
+    rm -rf "$template_home"
 fi
 if [ -n "$BUILD_CACHE_DIR" ]; then
     chown -R "$AGENT_USER:$AGENT_USER" \
@@ -55,6 +84,14 @@ install -d -o "$AGENT_USER" -g "$AGENT_USER" -m 0750 "$AGENT_HOME/.local/bin"
 install -d -o "$AGENT_USER" -g "$AGENT_USER" -m 0750 "$AGENT_HOME/.config/opencode/agents"
 install -d -o "$AGENT_USER" -g "$AGENT_USER" -m 0700 "$AGENT_HOME/.local/share/opencode"
 install -d -m 0755 /etc/opencode /etc/vdm-opencode-platform
+
+config="$AGENT_HOME/.config/opencode/opencode.json"
+tmp="$(mktemp)"
+jq --arg agent_home "$AGENT_HOME" \
+    '.mcp.git.command[0] = ($agent_home + "/.local/bin/mcp-server-git")' \
+    "$config" > "$tmp"
+install -o "$AGENT_USER" -g "$AGENT_USER" -m 0640 "$tmp" "$config"
+rm -f "$tmp"
 
 if ! command -v node >/dev/null 2>&1 || [ "$(node --version | sed 's/^v//' | cut -d. -f1)" -lt 20 ]; then
     nodesource_setup="$(mktemp)"

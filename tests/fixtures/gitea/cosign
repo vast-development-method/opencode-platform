@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[ "${1:-}" = sign-blob ] || {
+    printf 'Mock cosign supports sign-blob only.\n' >&2
+    exit 2
+}
+shift
+bundle=
+input=
+while (($# > 0)); do
+    case "$1" in
+        --yes|--tlog-upload=false)
+            shift
+            ;;
+        --key)
+            shift 2
+            ;;
+        --bundle)
+            bundle="${2:?bundle path required}"
+            shift 2
+            ;;
+        *)
+            input="$1"
+            shift
+            ;;
+    esac
+done
+[ -n "$bundle" ] && [ -f "$input" ] || {
+    printf 'Mock cosign did not receive its bundle and input.\n' >&2
+    exit 2
+}
+printf '{"mock_signature_nonce":"%s-%s"}\n' "$$" "${RANDOM:-0}" > "$bundle"
+printf 'signed\n' >> "${MOCK_COSIGN_LOG:?MOCK_COSIGN_LOG is required}"

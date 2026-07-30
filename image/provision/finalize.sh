@@ -4,7 +4,7 @@ set -Eeuo pipefail
 VARIANT="${1:?variant required}"
 PLATFORM_VERSION="${PLATFORM_VERSION:?platform version required}"
 AGENT_USER="${AGENT_USER:-opencode}"
-AGENT_HOME="/home/${AGENT_USER}"
+AGENT_HOME="${AGENT_HOME:-/home/${AGENT_USER}}"
 
 install -d -m 0755 /etc/vdm-opencode-platform
 

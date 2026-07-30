@@ -16,7 +16,11 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
       - name: Check out repository
@@ -36,9 +40,9 @@ jobs:
 
       - name: Upload failed validation log
         if: failure() && steps.validate.outcome == 'failure'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v4.6.2
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
-          name: validation-log
+          name: validation-log-${{ matrix.os }}
           path: validation.log
           if-no-files-found: error
           retention-days: 7
@@ -52,9 +56,9 @@ jobs:
 
       - name: Upload failed package round-trip log
         if: failure() && steps.package-roundtrip.outcome == 'failure'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v4.6.2
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
-          name: package-roundtrip-log
+          name: package-roundtrip-log-${{ matrix.os }}
           path: package-roundtrip.log
           if-no-files-found: error
           retention-days: 7

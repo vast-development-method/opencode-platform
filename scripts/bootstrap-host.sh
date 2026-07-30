@@ -12,6 +12,18 @@ case "${ID:-}:${ID_LIKE:-}" in
     *) die "Supported hosts are Ubuntu and Debian." ;;
 esac
 
+operator_user="${SUDO_USER:-${USER:-$(id -un)}}"
+[[ "$operator_user" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] ||
+    die "Unable to identify a safe Incus operator account"
+id "$operator_user" >/dev/null 2>&1 ||
+    die "Incus operator account does not exist: $operator_user"
+
+# Bootstrap is the only workflow that opts into privileged Incus fallback
+# automatically. Normal operator commands require direct Incus access.
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    export VDM_INCUS_USE_SUDO=true
+fi
+
 for utility in /usr/bin/cp /usr/bin/mv /usr/bin/rm; do
     [ -x "$utility" ] || die "Host package state is unsafe: $utility is missing or not executable. Repair dpkg before running bootstrap."
 done
@@ -73,6 +85,14 @@ sudo systemctl enable --now incus.service
 sudo systemctl is-active --quiet incus.service ||
     die "Incus did not become active after package installation."
 
+membership_added=false
+if [ "$operator_user" != root ] &&
+    ! id -nG "$operator_user" | tr ' ' '\n' | grep -qx incus-admin; then
+    log "Granting $operator_user direct Incus administration access"
+    sudo usermod --append --groups incus-admin "$operator_user"
+    membership_added=true
+fi
+
 server_version="$(
     incus_cmd version |
         awk -F': ' '/^Server version:/ {print $2; exit}'
@@ -93,4 +113,7 @@ fi
 
 "$SCRIPT_DIR/apply-incus.sh"
 "$SCRIPT_DIR/install-host-units.sh"
+if [ "$membership_added" = true ]; then
+    warn "$operator_user was added to incus-admin. Log out and back in before running Incus or platform commands without sudo. Membership in incus-admin is root-equivalent."
+fi
 log "Host bootstrap complete"

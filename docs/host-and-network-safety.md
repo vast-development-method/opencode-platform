@@ -18,6 +18,11 @@ packages; Zabbly also provides supported current packages for listed
 distributions. Selecting or changing that source is an operator-controlled host
 policy, not something this repository automates.
 
+The acceptance baseline is Ubuntu 24.04 LTS and Ubuntu 26.04 LTS, for server and
+desktop installations. Debian-family detection remains available, but every
+production promotion must still pass the repository's real KVM/Incus acceptance
+matrix on the exact host release.
+
 Before APT changes anything, bootstrap verifies:
 
 ```bash
@@ -36,6 +41,32 @@ approved run.
 The platform never installs or removes `gnu-coreutils`,
 `coreutils-from-uutils`, or an alternative `dd`; it never creates a systemd
 `PATH` override for Incus.
+
+## Incus authority
+
+Incus administration is root-equivalent. Bootstrap adds the invoking operator
+to `incus-admin` only when direct access is absent, completes that one bootstrap
+through its explicit privileged path, and asks the operator to log out and back
+in. All other commands require direct access by default. They do not reinterpret
+a daemon, socket or configuration failure as permission to run `sudo incus`.
+
+For a deliberately privileged one-off invocation, set
+`VDM_INCUS_USE_SUDO=true`. Non-interactive use requires an already configured,
+narrowly scoped non-interactive sudo policy; the scripts never wait for a
+password prompt in CI or a system service.
+
+## Expiry service trust boundary
+
+`install-host-units.sh` copies only the reaper, its shared library and required
+non-secret manifests into `/usr/local/libexec/vdm-opencode`, owned by root. It
+also writes the selected project name to
+`/etc/vdm-opencode-platform/reaper.env` and validates the installed units with
+`systemd-analyze verify`.
+
+The timer therefore never gives a user-writable Git checkout a root execution
+path. `ProtectHome=true` remains enabled. The service is restricted to the
+Incus Unix socket family, has no Linux capabilities or writable home path, and
+receives only the Incus runtime and private state paths it needs.
 
 ## Network ownership
 

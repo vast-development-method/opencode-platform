@@ -17,9 +17,14 @@ for agent in "${agents[@]}"; do
 
     # The single-quoted program is evaluated inside the guest, where the injected variables exist.
     # shellcheck disable=SC2016
-    project_cmd exec "$NAME" --env "AGENT_NAME=$agent" --env "AGENT_MODEL=$model" -- bash -c '
+    project_cmd exec "$NAME" \
+        --env "AGENT_NAME=$agent" \
+        --env "AGENT_MODEL=$model" \
+        --env "AGENT_HOME=$AGENT_HOME" \
+        -- bash -c '
 set -Eeuo pipefail
-file="/home/opencode/.config/opencode/agents/${AGENT_NAME}.md"
+: "${AGENT_HOME:?agent home is required}"
+file="$AGENT_HOME/.config/opencode/agents/${AGENT_NAME}.md"
 if grep -q "^model:" "$file"; then
     if [ -n "$AGENT_MODEL" ]; then
         sed -i "s|^model:.*|model: ${AGENT_MODEL}|" "$file"

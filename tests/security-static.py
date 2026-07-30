@@ -108,6 +108,29 @@ class SecurityStaticTest(unittest.TestCase):
         self.assertIn("dpkg --audit", bootstrap)
         self.assertIn("apt-get check", bootstrap)
 
+    def test_reaper_executes_only_the_root_owned_runtime(self) -> None:
+        installer = (ROOT / "scripts/install-host-units.sh").read_text()
+        service = (
+            ROOT / "host/systemd/vdm-opencode-reaper.service.in"
+        ).read_text()
+        runtime = "/usr/local/libexec/vdm-opencode/scripts/reap-expired-vms.sh"
+        self.assertIn("RUNTIME_ROOT=/usr/local/libexec/vdm-opencode", installer)
+        self.assertIn('"$RUNTIME_ROOT/scripts/reap-expired-vms.sh"', installer)
+        self.assertIn(f"ExecStart={runtime}", service)
+        self.assertNotIn("@ROOT_DIR@", service)
+        self.assertIn("ProtectHome=true", service)
+        self.assertIn("ProtectSystem=strict", service)
+        self.assertIn("CapabilityBoundingSet=", service)
+
+    def test_agent_identity_changes_invalidate_build_checkpoints(self) -> None:
+        build = (ROOT / "scripts/build-image.sh").read_text()
+        fingerprint_block = build[
+            build.index('build_fingerprint="$(') : build.index('BUILD_NAME=')
+        ]
+        self.assertIn('"$AGENT_USER"', fingerprint_block)
+        self.assertIn('"$AGENT_HOME"', fingerprint_block)
+        self.assertIn('"AGENT_HOME=$AGENT_HOME"', build)
+
     def test_joomla_defaults_are_local_read_only_and_credential_free(self) -> None:
         example = json.loads(
             (

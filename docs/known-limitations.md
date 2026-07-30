@@ -1,7 +1,8 @@
 # Known limitations
 
-- Static and mocked validation is available, but the six real Incus images have
-  not yet been built in this delivery environment.
+- Static validation plus executing mocked launch, cleanup, listing, reaper,
+  credential and publication-retry tests are available, but the six real Incus
+  images have not yet been built in this delivery environment.
 - Build-resource selection, resumable checkpoints and cache detachment are
   covered by repository tests, but release promotion still requires a real
   clean `--no-cache` build on two independent hardware-virtualisation hosts.
@@ -35,3 +36,8 @@
   independent clean host is mandatory for redistribution evidence.
 - OpenCode configuration compatibility must be revalidated whenever OpenCode is
   upgraded.
+- Ubuntu 24.04/26.04 host portability is covered by fail-closed package,
+  privilege, systemd-unit and command-path contracts, and repository CI runs on
+  both GitHub-hosted OS images. Real KVM acceptance on both releases remains a
+  promotion gate; hosted CI cannot prove kernel virtualization, bridge egress
+  enforcement or a live systemd timer.

@@ -5,6 +5,7 @@ umask 077
 : "${CREDENTIALS_DIRECTORY:?systemd credential directory is required}"
 : "${VDM_SESSION_ID:?session id is required}"
 : "${VDM_SESSION_MODE:=opencode}"
+: "${VDM_AGENT_USER:=opencode}"
 : "${VDM_AGENT_HOME:=/home/opencode}"
 : "${VDM_WORKSPACE_ROOT:=/workspace}"
 
@@ -55,8 +56,8 @@ while IFS= read -r line || [ -n "$line" ]; do
 done < "$credential_file"
 
 export HOME="$VDM_AGENT_HOME"
-export USER=opencode
-export LOGNAME=opencode
+export USER="$VDM_AGENT_USER"
+export LOGNAME="$VDM_AGENT_USER"
 export PATH="$VDM_AGENT_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
 export XDG_DATA_HOME="/run/vdm-opencode-$VDM_SESSION_ID/data"
 install -d -m 0700 "$XDG_DATA_HOME"

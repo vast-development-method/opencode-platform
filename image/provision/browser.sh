@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+AGENT_USER="${AGENT_USER:-opencode}"
+AGENT_HOME="${AGENT_HOME:-/home/${AGENT_USER}}"
 
 npm install --global \
     "${PLAYWRIGHT_MCP_PACKAGE:?PLAYWRIGHT_MCP_PACKAGE is required}" \
@@ -37,8 +39,8 @@ installed_mcp="$(npm list --global --json --depth=0 | jq -r '.dependencies["@pla
 }
 test -x /usr/local/bin/vdm-playwright-mcp
 
-CONFIG=/home/opencode/.config/opencode/opencode.json
+CONFIG="$AGENT_HOME/.config/opencode/opencode.json"
 tmp="$(mktemp)"
 jq '.mcp.playwright.enabled = true' "$CONFIG" > "$tmp"
-install -o opencode -g opencode -m 0640 "$tmp" "$CONFIG"
+install -o "$AGENT_USER" -g "$AGENT_USER" -m 0640 "$tmp" "$CONFIG"
 rm -f "$tmp"

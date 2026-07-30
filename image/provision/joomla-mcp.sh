@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 AGENT_USER="${AGENT_USER:-opencode}"
-AGENT_HOME="/home/${AGENT_USER}"
+AGENT_HOME="${AGENT_HOME:-/home/${AGENT_USER}}"
 
 # The single-quoted program is JavaScript evaluated by Node, not shell text.
 # shellcheck disable=SC2016

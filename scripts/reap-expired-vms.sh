@@ -22,11 +22,8 @@ for row in "${rows[@]}"; do
     fi
     if ((expires <= NOW)); then
         log "Stopping expired agent VM $name"
-        # The single-quoted command is intentionally evaluated inside the guest.
-        # shellcheck disable=SC2016
-        project_cmd exec "$name" -- bash -c \
-            'systemctl list-units --type=service --all --no-legend "vdm-opencode-*.service" |
-             awk "{print \$1}" | xargs -r systemctl stop' >/dev/null 2>&1 || true
+        stop_guest_sessions "$name"
+        cleanup_guest_runtime "$name"
         project_cmd stop "$name" --timeout 30 >/dev/null 2>&1 || project_cmd stop "$name" --force
         project_cmd config unset "$name" user.vdm.session.id >/dev/null 2>&1 || true
         project_cmd config unset "$name" user.vdm.session.expires_epoch >/dev/null 2>&1 || true
