@@ -21,7 +21,7 @@ installed MCP and JCB commands. On the service, an authorized operator can
 inspect them using:
 
 ```bash
-php cli/joomla.php list --raw
+php cli/joomla.php list --no-ansi
 php cli/joomla.php joomla:mcp:self-test
 php cli/joomla.php joomla:mcp:describe
 php cli/joomla.php joomla:mcp:cli-inventory
