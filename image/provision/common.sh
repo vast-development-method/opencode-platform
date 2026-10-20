@@ -93,20 +93,9 @@ jq --arg agent_home "$AGENT_HOME" \
 install -o "$AGENT_USER" -g "$AGENT_USER" -m 0640 "$tmp" "$config"
 rm -f "$tmp"
 
-if ! command -v node >/dev/null 2>&1 || [ "$(node --version | sed 's/^v//' | cut -d. -f1)" -lt 20 ]; then
-    nodesource_setup="$(mktemp)"
-    trap 'rm -f "$nodesource_setup"' EXIT
-    curl --fail --silent --show-error --location \
-        "https://deb.nodesource.com/setup_${NODE_MAJOR:-22}.x" \
-        --output "$nodesource_setup"
-    printf '%s  %s\n' \
-        "${NODESOURCE_SETUP_SHA256:?NODESOURCE_SETUP_SHA256 is required}" \
-        "$nodesource_setup" | sha256sum --check --strict
-    bash "$nodesource_setup"
-    rm -f "$nodesource_setup"
-    trap - EXIT
-    apt-get install -y --no-install-recommends nodejs
-fi
+# shellcheck source=image/provision/lib/node-runtime.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/node-runtime.sh"
+ensure_node_runtime
 
 npm install --global "${OPENCODE_PACKAGE:?OPENCODE_PACKAGE is required}"
 opencode_path="$(command -v opencode)"

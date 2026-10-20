@@ -8,6 +8,7 @@ source "$ROOT_DIR/scripts/lib/common.sh"
 
 for image in "${PLATFORM_IMAGES[@]}"; do
     variant_exists "$image"
+    image_has_component "$image" joomla-mcp
     test -f "$ROOT_DIR/incus/profiles/generated/images/$image.yaml"
     for component in ${PLATFORM_IMAGE_COMPONENTS[$image]}; do
         provision="${PLATFORM_COMPONENT_PROVISION[$component]:-}"

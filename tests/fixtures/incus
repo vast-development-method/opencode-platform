@@ -10,6 +10,18 @@ if [ "${1:-}" = --project ]; then
 fi
 
 case "${1:-}:${2:-}" in
+    image:list)
+        fixture_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+        # shellcheck disable=SC1091
+        source "$fixture_root/manifest/toolchain.env"
+        jq -n --arg alias "${3:?image alias required}" \
+            --arg version "$(<"$fixture_root/VERSION")" \
+            --arg node "${MOCK_INCUS_NODE_VERSION:-$NODE_EXPECTED_VERSION}" \
+            --arg fingerprint "${MOCK_INCUS_FINGERPRINT:-$(printf 'a%.0s' {1..64})}" \
+            '[{fingerprint:$fingerprint,type:"virtual-machine",aliases:[{name:$alias}],properties:{
+              "org.vdm.platform":"vdm-opencode-platform","org.vdm.version":$version,
+              "org.vdm.variant":"base","user.ductor.openclaw.node_version":$node}}]'
+        ;;
     image:export)
         output="${4:?mock export output is required}"
         metadata_dir="$(mktemp -d)"

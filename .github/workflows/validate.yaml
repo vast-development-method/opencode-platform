@@ -29,7 +29,10 @@ jobs:
       - name: Install validation dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq python3-yaml shellcheck yamllint
+          sudo apt-get install -y jq python3-yaml shellcheck yamllint curl openssl
+
+      - name: Verify privileged company snapshot installation
+        run: sudo python3 -m unittest discover -s tests -p test_company_context.py
 
       - name: Validate repository
         id: validate

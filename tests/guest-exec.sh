@@ -36,19 +36,9 @@ bash -c '
 
 mapfile -t arguments < "$capture"
 expected=(
-    /usr/local/bin/vdm-joomla-mcp-live-test
-    --config
-    /etc/joomla-mcp/sites.json
-    --site
+    /usr/local/bin/vdm-joomla-mcp
+    read-test
     company
-    --profile
-    read
-    --joomla-path
-    api
-    --mcp-transport
-    stdio
-    --non-interactive
-    --output
     "$workspace/.artifacts/joomla-mcp/test"
 )
 [ "${#arguments[@]}" -eq "${#expected[@]}" ]

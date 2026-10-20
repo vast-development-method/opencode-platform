@@ -10,15 +10,14 @@ umask 077
 : "${VDM_WORKSPACE_ROOT:=/workspace}"
 
 allowed_key() {
+    [[ "$1" =~ ^JOOMLA_MCP_[A-Z][A-Z0-9_]{0,63}_TOKEN$ ]] && return 0
     case "$1" in
         VDM_LLM_GATEWAY_URL|VDM_LLM_GATEWAY_TOKEN|\
         GITHUB_MCP_URL|GITHUB_MCP_TOKEN|\
         GITEA_MCP_URL|GITEA_MCP_TOKEN|\
         NEXTCLOUD_MCP_URL|NEXTCLOUD_MCP_TOKEN|\
         JOOMLA_MCP_URL|JOOMLA_MCP_TOKEN|\
-        JOOMLA_MCP_SITE_TOKEN|JOOMLA_MCP_UPDATE_TOKEN|\
-        JOOMLA_MCP_APPROVAL_SECRET|\
-        JCB_MCP_URL|JCB_MCP_TOKEN|\
+        JOOMLA_MCP_SITE_TOKEN|\
         STT_MCP_URL|STT_MCP_TOKEN|\
         VDM_LOCAL_LLM_BASE_URL|VDM_LOCAL_LLM_MODEL) return 0 ;;
         *) return 1 ;;
@@ -70,7 +69,7 @@ case "$VDM_SESSION_MODE" in
     joomla-read-test)
         : "${VDM_JOOMLA_SITE_ALIAS:?Joomla site alias is required}"
         : "${VDM_JOOMLA_TEST_OUTPUT:?Joomla test output path is required}"
-        [[ "$VDM_JOOMLA_SITE_ALIAS" =~ ^[A-Za-z][A-Za-z0-9_-]{0,63}$ ]] || {
+        [[ "$VDM_JOOMLA_SITE_ALIAS" =~ ^[a-z][a-z0-9_-]{0,63}$ ]] || {
             printf 'Unsafe Joomla site alias.\n' >&2
             exit 2
         }
@@ -78,15 +77,9 @@ case "$VDM_SESSION_MODE" in
             printf 'Joomla test output must remain inside the workspace.\n' >&2
             exit 2
         }
-        install -d -m 0750 "$VDM_JOOMLA_TEST_OUTPUT"
-        exec /usr/local/bin/vdm-joomla-mcp-live-test \
-            --config /etc/joomla-mcp/sites.json \
-            --site "$VDM_JOOMLA_SITE_ALIAS" \
-            --profile read \
-            --joomla-path api \
-            --mcp-transport stdio \
-            --non-interactive \
-            --output "$VDM_JOOMLA_TEST_OUTPUT"
+        install -d -m 0700 "$VDM_JOOMLA_TEST_OUTPUT"
+        exec /usr/local/bin/vdm-joomla-mcp read-test \
+            "$VDM_JOOMLA_SITE_ALIAS" "$VDM_JOOMLA_TEST_OUTPUT"
         ;;
     *)
         printf 'Unsupported VDM session mode: %s\n' "$VDM_SESSION_MODE" >&2

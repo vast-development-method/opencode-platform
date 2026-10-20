@@ -2,7 +2,7 @@ schema: 2
 
 platform:
   name: vdm-opencode-platform
-  version: 0.3.0-rc.3
+  version: 0.4.0-rc.1
   image_prefix: vdm-opencode
   base_image: images:ubuntu/24.04/cloud
   architectures:
@@ -137,7 +137,7 @@ dimensions:
       status: ready
       components: [database]
     joomla-mcp:
-      label: JoomEngine MCP for Joomla
+      label: Native Joomla and JCB MCP client
       phase: build
       status: ready
       components: [joomla-mcp]
@@ -231,7 +231,7 @@ images:
     status: ready
     release: true
     languages: [shell]
-    capabilities: [cpu]
+    capabilities: [cpu, joomla-mcp]
     default_policy: connected
     default_size: small
   php:
@@ -247,7 +247,7 @@ images:
     status: ready
     release: true
     languages: [shell, python]
-    capabilities: [cpu]
+    capabilities: [cpu, joomla-mcp]
     default_policy: connected
     default_size: standard
   cpp:
@@ -255,7 +255,7 @@ images:
     status: ready
     release: true
     languages: [shell, c, cpp]
-    capabilities: [cpu]
+    capabilities: [cpu, joomla-mcp]
     default_policy: connected
     default_size: large
   typescript:
@@ -263,7 +263,7 @@ images:
     status: ready
     release: true
     languages: [shell, node, typescript]
-    capabilities: [cpu, browser]
+    capabilities: [cpu, browser, joomla-mcp]
     default_policy: connected
     default_size: standard
   full:

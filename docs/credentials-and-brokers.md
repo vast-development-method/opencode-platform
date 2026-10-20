@@ -1,119 +1,73 @@
-# Credentials and brokers
+# Scoped runtime credentials
 
-## Initial mode
+The controller retains infrastructure credentials. A worker receives only the
+values selected for its task through systemd `LoadCredential`, under a bounded
+service and tmpfs data directory. The host file is caller-owned mode 0600, cannot
+be a symlink or hard link, and contains only allowlisted single-line values.
+Neither values nor the OpenBao controller token enter Incus command arguments.
 
-`start-session.sh` injects an allowlisted environment file into one bounded
-systemd unit and redirects OpenCode's data directory to guest tmpfs. On exit it
-deletes the guest credential and runtime directory.
+## Native Joomla/JCB
 
-The host file is created by:
+Use a dedicated Joomla API identity per site and scope. The default site uses
+`JOOMLA_MCP_SITE_TOKEN`; additional aliases use `JOOMLA_MCP_<ALIAS>_TOKEN`.
+OpenCode's non-secret configuration contains an environment reference, endpoint
+and `oauth: false`. Joomla's native token and ACL authorize requests. A client
+label such as `readonly` is not an authorization check.
 
-```bash
-./scripts/occtl.sh credentials INSTANCE
+The PHP server owns grants, reviewed plans, explicit confirmation, idempotency,
+audit, native target permissions, jobs and artifacts. The old TypeScript adapter's
+approval secret and separate client catalogue are not used. Remove obsolete
+`JOOMLA_MCP_APPROVAL_SECRET`, `JOOMLA_MCP_UPDATE_TOKEN`, `JCB_MCP_URL` and
+`JCB_MCP_TOKEN` entries when migrating an old runtime file. Rebuild older images
+before configuring the native connection.
+
+`occtl joomla-import INSTANCE DUCTOR_CLIENT_JSON` accepts Ductor's protected
+client document, configures its endpoint and alias, and atomically copies its
+scoped token into the host's tmpfs runtime file. No token is displayed.
+
+## OpenBao KV-v2 retrieval
+
+`occtl credentials-fetch INSTANCE CONFIG_JSON` reads exact permitted KV-v2
+fields over verified HTTPS and atomically updates the runtime file. Keep this
+configuration outside the image and repository, owned by the caller with mode
+0600. For example, using your deployed address and secret locations:
+
+```json
+{
+  "schema": 1,
+  "address": "https://bao.example.com:8200",
+  "token_file": "/run/user/1000/bao-session-token",
+  "secrets": [
+    {"key": "JOOMLA_MCP_SITE_TOKEN", "mount": "kv", "path": "joomla/company", "field": "token"}
+  ]
+}
 ```
 
-It lives under `/run/user/$UID/vdm-opencode`, must be a regular single-link file
-owned by the caller with mode `0600`, and is never passed as a string of secret
-values to `incus exec`.
-`VDM_RUNTIME_BASE` may select another caller-owned mode-`0700` tmpfs mount;
-non-tmpfs paths are rejected so credentials cannot be persisted accidentally.
-
-This reduces persistence but does not hide a token from the process that must
-use it. Therefore all injected tokens must be:
-
-- short-lived where the upstream supports leases;
-- narrowly scoped;
-- revocable;
-- budget-limited where applicable;
-- unusable outside approved services.
-
-Unknown names, duplicate names, carriage returns and malformed lines fail
-closed on both the host and guest side.
-
-## Local Joomla MCP path
-
-The PHP and full images launch JoomEngine MCP for Joomla over local stdio. That
-path does not expose an inbound MCP endpoint and does not use
-`JOOMLA_MCP_URL`/`JOOMLA_MCP_TOKEN`.
-
-The site definition contains only the fixed HTTPS origin, alias, toolsets and
-credential variable names. The protected session supplies:
-
-- `JOOMLA_MCP_SITE_TOKEN` for the dedicated Joomla Web Services API identity;
-- `JOOMLA_MCP_APPROVAL_SECRET` only when guarded writes are configured;
-- `JOOMLA_MCP_UPDATE_TOKEN` only when the explicit full/core-update profile is configured.
-
-`start-session.sh` reads the non-secret site configuration and refuses to start
-when a referenced credential is absent. The built-in read-only live test uses
-the identical systemd credential path. Neither helper accepts a token as a
-command-line argument.
-
-## Corporate mode
-
-A trusted broker host should retain long-lived upstream credentials and expose only capabilities:
-
-- LLM gateway virtual keys with model, rate and spend limits;
-- GitHub/Gitea MCP sessions limited to selected repositories and operations;
-- Nextcloud MCP sessions limited to selected users, apps and tagged folders;
-- scoped Joomla API identities or short-lived equivalents limited to approved
-  sites and component permissions;
-- future JCB integration only after its release gates pass.
-
-The VM must never receive a Vaultwarden or OpenBao identity capable of reading all upstream secrets.
-
-## Provider capability paths
-
-Autonomous sessions use one route for each provider:
-
-- OpenAI API, Anthropic/Claude API, Google Gemini API and xAI/Grok API:
-  OpenBao-held upstream credential → LiteLLM policy route → short-lived session
-  virtual key → root-owned guest relay → tokenless local OpenCode endpoint.
-- Local models: the gateway exposes approved OpenAI-compatible inference
-  routes only. Model administration and the host Ollama/API port remain
-  unreachable from agent networks.
-- ChatGPT subscription login: interactive developer sessions may use
-  OpenCode's supported login inside tmpfs. It is not an autonomous production
-  credential path.
-- GitHub: the gateway mints a GitHub App installation token scoped to selected
-  repositories and operations.
-- Gitea and remote MCP: the gateway retains the service credential and checks
-  session identity, repository, tool, read/write level and expiry per request.
-- Joomla: the present local stdio path receives a dedicated Joomla bearer token
-  through the bounded session. A future broker may exchange site/session
-  identity for a shorter-lived site capability, but must not broaden Joomla ACL.
-- VPS access: the VM creates an ephemeral key; OpenBao SSH CA signs the public
-  key for 10–15 minutes; the network policy permits only the audited bastion.
-
-The current environment-file bridge is transitional. It uses systemd
-credentials and avoids secret values in host process arguments, but child
-commands can still exercise or inspect exported session variables. Release
-promotion requires the tokenless root-owned relay described above for provider
-paths where such a relay is practical.
-
-## OpenBao
-
-OpenBao is suitable for machine identity, short leases, revocation and audit.
-The agent should not query broad secret paths directly. A broker exchanges an
-OpenBao-authenticated service identity for downstream capability tokens.
-
-For Joomla, preserve separate authorities for the normal API identity and
-Joomla Update. Do not issue a single universal token merely because the
-platform supports several toolsets.
-
-## Vaultwarden
-
-Vaultwarden remains useful for human-controlled bootstrap and recovery secrets.
-Do not give the autonomous VM a universal Vaultwarden account.
-
-## Runtime file
-
-Create or upgrade it under host tmpfs:
+An optional `ca_file` names a private CA certificate. The controller token file
+must be caller-owned, mode 0600, single-link and on tmpfs. Obtain that token
+through your existing OpenBao workload authentication; its policy needs only
+`read` on the exact `kv/data/joomla/company` path. Do not use a root token or give
+the worker an OpenBao identity that can enumerate all company secrets.
 
 ```bash
-runtime_file="$(./scripts/occtl.sh credentials INSTANCE)"
-"${EDITOR:-nano}" "$runtime_file"
-chmod 600 "$runtime_file"
+runtime_file="$(./scripts/occtl.sh credentials-fetch opencode-joomla /secure/company-bao.json)"
+./scripts/occtl.sh session opencode-joomla "$runtime_file"
 ```
 
-The script refuses unsafe file types and preserves existing values while adding
-new allowlisted Joomla keys during a platform upgrade.
+The helper neither follows redirects nor disables TLS verification. Partial
+retrieval, a missing field or malformed values leave the prior credential file
+unchanged. Rotations are fetched explicitly before a new session. Long-lived
+Joomla tokens still need native rotation/revocation; OpenBao storage alone does
+not grant expiry to a downstream token. Stopping Ductor does not revoke running
+service credentials or stop Joomla.
+
+## Boundaries
+
+Processes can inspect credentials they legitimately use. Limit the identity's
+server-side permissions and exposure window. Never export runtime directories,
+OpenCode authentication state or provider secrets as review handoffs.
+
+The older `broker/` Compose stack remains optional reference infrastructure for
+LLM routing. Native Joomla MCP connectivity and KV retrieval do not depend on
+that stack, an invented OAuth exchange or an unfinished tokenless relay. Reuse
+Ductor's deployed OpenBao service rather than creating another one implicitly.

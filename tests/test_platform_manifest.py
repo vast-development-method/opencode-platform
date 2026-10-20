@@ -60,7 +60,7 @@ class PlatformManifestTest(unittest.TestCase):
             "The runtime size remains independent from the build plan.",
         )
 
-    def test_joomla_mcp_is_composable_and_php_scoped(self) -> None:
+    def test_remote_joomla_mcp_is_available_without_a_php_worker(self) -> None:
         self.assertEqual(
             {"status": "ready", "provision": "joomla-mcp.sh"},
             self.data["components"]["joomla-mcp"],
@@ -69,10 +69,9 @@ class PlatformManifestTest(unittest.TestCase):
         self.assertEqual("ready", capability["status"])
         self.assertEqual(["joomla-mcp"], capability["components"])
 
-        for image in ("php", "full"):
-            self.assertIn("joomla-mcp", self.data["images"][image]["capabilities"])
-        for image in ("base", "python", "cpp", "typescript"):
-            self.assertNotIn("joomla-mcp", self.data["images"][image]["capabilities"])
+        for image in self.data["images"].values():
+            self.assertIn("joomla-mcp", image["capabilities"])
+        self.assertNotIn("php", self.data["images"]["base"]["languages"])
 
     def test_provider_matrices_are_identical_and_complete(self) -> None:
         outputs = []

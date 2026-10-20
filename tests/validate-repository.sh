@@ -7,6 +7,7 @@ fail=0
 find_args=("$ROOT_DIR" -type f -not -path "$ROOT_DIR/.git/*" -not -path "$ROOT_DIR/build/*")
 extra_shell=(
     "$ROOT_DIR/image/files/usr/local/libexec/vdm-opencode-session"
+    "$ROOT_DIR/image/files/usr/local/libexec/vdm-joomla-mcp"
     "$ROOT_DIR/tests/fixtures/incus"
     "$ROOT_DIR/tests/fixtures/session/incus"
     "$ROOT_DIR/tests/fixtures/joomla/incus"
@@ -28,6 +29,11 @@ fi
 
 bash "$ROOT_DIR/tests/variant-selection.sh" || fail=1
 bash "$ROOT_DIR/tests/build-resources.sh" || fail=1
+bash "$ROOT_DIR/tests/runtime-node.sh" || fail=1
+bash "$ROOT_DIR/tests/openbao-credentials.sh" || fail=1
+bash "$ROOT_DIR/tests/platform-integration.sh" || fail=1
+bash "$ROOT_DIR/tests/company-context.sh" || fail=1
+python3 -m unittest "$ROOT_DIR/tests/test_service_network.py" || fail=1
 python3 "$ROOT_DIR/scripts/generate-platform.py" --check || fail=1
 python3 -m unittest "$ROOT_DIR/tests/test_platform_manifest.py" || fail=1
 python3 -m unittest "$ROOT_DIR/tests/test_authorities.py" || fail=1

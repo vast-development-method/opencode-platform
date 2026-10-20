@@ -1,241 +1,175 @@
-# JoomEngine MCP for Joomla integration
+# Native JoomEngine MCP integration
 
-Reviewed: 2026-07-27
+OpenCode connects directly to the PHP server in `joomengine/mcp_component` through
+Streamable HTTP. This platform no longer installs the superseded
+`@joomengine/joomla-mcp` TypeScript server. All agent images can use the connection;
+a PHP development toolchain is not required on the agent.
 
-## Status and authority
+The Joomla side owns tools, schemas, Joomla/JCB execution, ACL, write permissions,
+plans, audit, jobs and artifacts. OpenCode owns the agent session. Ductor deploys
+and configures the service infrastructure. None of these responsibilities needs a
+second Joomla MCP server inside the agent VM.
 
-The approved source is:
+## Prepare the Joomla service
 
-`https://github.com/joomengine/joomla-mcp`
+Use the current JoomEngine image with the MCP package installed and enabled. The
+component supports Joomla 6.1–6.x and PHP 8.3+. Enable its webservices plugin and
+Joomla's API token authentication/user plugins. Configure **Canonical Joomla API
+URL** with the trusted HTTPS site URL ending in `/api/index.php`.
 
-The PHP and full images install the public npm release `@joomengine/joomla-mcp@0.7.0`. The package version is exact,
-the inspected source commit is recorded in `manifest/sources.lock.yaml`, the image build verifies the installed
-version, and the release SBOM records the resulting dependency graph.
+Joomla must be able to reach its own canonical HTTPS API address. The reverse
+proxy must preserve the host and authentication headers. Private certificate
+authorities belong in the agent and Joomla trust stores; certificate verification
+is never disabled by this integration.
 
-`manifest/images.yaml` remains the composition authority. The ready `joomla-mcp` capability resolves to
-`image/provision/joomla-mcp.sh`; it is not hidden inside the general PHP provisioner.
+Create a dedicated Joomla account/group for each automation identity. Grant
+`core.login.api`, `mcp.access`, `mcp.execute`, the applicable viewing levels and
+native resource permissions. For the default read-only identity, deny `mcp.write`
+and do not grant `mcp.approve`, native create/edit/delete or administration access.
+For intentional write access, grant only the needed native permissions and MCP
+write/approval rights. A Joomla API token carries that user's authority; storing
+it in OpenBao does not reduce its Joomla permissions.
 
-Upstream currently describes broad source-backed Joomla 6.1 route coverage while retaining live-production
-evidence gates for action families. This platform therefore installs and hardens the integration without claiming
-that every privileged action is production-certified. Promotion still requires the real image and live-site
-evidence described below.
-
-## Runtime architecture
-
-```text
-OpenCode
-  -> local stdio command /usr/local/bin/vdm-joomla-mcp
-  -> root-owned /etc/joomla-mcp/sites.json (origin, alias, toolsets; no secret)
-  -> session-only JOOMLA_MCP_SITE_TOKEN
-  -> HTTPS Joomla Web Services API
-```
-
-The normal container path uses local stdio:
-
-- no inbound VM port;
-- no HTTP MCP listener;
-- no MCP bearer token or JWKS endpoint;
-- no site origin supplied by a model;
-- no credential in OpenCode JSON or the Joomla site file;
-- no arbitrary HTTP, CLI, PHP, SQL, filesystem, model, method or URL passthrough.
-
-The configured alias and fixed toolsets bound what the server can expose. Joomla's own Web Services plugins, API
-user permissions and ACL remain authoritative beneath that boundary.
-
-The package's authenticated Streamable HTTP entry point remains available as
-`/usr/local/bin/vdm-joomla-mcp-http`, but it is not enabled or exposed by this image integration. Deploy it only as
-a separately reviewed service with TLS termination, issuer/audience/scope validation and a trusted JWKS endpoint.
-
-## Build and deploy
-
-Build a new PHP image after checking out the platform release that contains the integration:
+## Configure one or multiple connections
 
 ```bash
-./tests/validate-repository.sh
-export LOCAL_BUILD_VARIANTS=php
-./scripts/local-image-release.sh
-./scripts/launch-vm.sh php opencode-joomla
+./scripts/occtl.sh joomla-configure opencode-joomla \
+  https://joomla.example.com/joomla/api/index.php/v1/joomengine-mcp company readonly
+./scripts/occtl.sh joomla-configure opencode-joomla \
+  https://builder.example.com/api/index.php/v1/joomengine-mcp builder write
 ```
 
-An already-running instance built from an older image does not acquire Joomla MCP automatically. Launch from the
-new versioned image alias or follow the normal instance replacement workflow.
+A site base URL is also accepted and expanded to the complete endpoint. Aliases
+use lowercase letters, digits, hyphens and underscores. Reconfiguring one alias preserves
+other sites and unrelated OpenCode MCP entries. The command configures
+`joomla_company` and `joomla_builder` with `type: remote`, `oauth: false` and an
+`X-Joomla-Token` header that references an environment variable. There is no
+invented OAuth flow or local HTTP listener.
 
-Configure a public HTTPS Joomla origin:
+`readonly` and `write` record the intended server authority. **The label is not an
+authorization boundary and cannot restrict a privileged token.** The Joomla
+identity and server ACL enforce access. Discovery always reflects the actual
+installed server catalogue and that identity's rights.
+
+The non-secret connection registry is `/etc/joomla-mcp/sites.json`, root-owned and
+readable by the agent group. It contains endpoint, alias, token-variable name and
+access intent. It contains no tokens, private keys or local approval secrets.
+OpenCode configuration is read and replaced as the unprivileged agent account;
+the privileged configuration command never follows paths inside the agent's home.
+Existing TypeScript configuration must be reconfigured; it is not silently
+interpreted as the new native-server contract.
+
+## Credentials
+
+The default `company` alias uses `JOOMLA_MCP_SITE_TOKEN`. Other aliases generate
+`JOOMLA_MCP_<UPPERCASE_ALIAS>_TOKEN`, for example `JOOMLA_MCP_BUILDER_TOKEN`.
+A fifth configuration argument can select an explicit dedicated variable using
+the same naming convention. Different aliases cannot share a token reference.
+Hyphens normalize to underscores in token-variable names. Consequently `a-b` and
+`a_b` require distinct explicitly selected token references; collisions are rejected.
+
+Use `occtl credentials INSTANCE` to obtain the protected runtime environment file,
+or use the platform's OpenBao credential flow. Supply the token there; never pass
+it as a command-line argument or commit it to OpenCode configuration. Old
+`JOOMLA_MCP_APPROVAL_SECRET` and `JOOMLA_MCP_UPDATE_TOKEN` settings are not used by
+the native PHP connection: the server owns consent and operation authorization.
+
+The diagnostic helper additionally accepts a private token file through the token
+variable's `_FILE` equivalent, such as `JOOMLA_MCP_SITE_TOKEN_FILE`. The file must
+be owned by the current user, mode `0600`, with one hard link and no symlink. Do
+not supply both a token value and a file reference. Ordinary OpenCode connections
+use the session's materialized token environment, not that helper-specific option.
+
+Restart the OpenCode session after changing connection configuration or rotating
+a token. A disabled site can be left configured for later reuse:
 
 ```bash
-./scripts/occtl.sh joomla-configure \
-  opencode-joomla \
-  https://www.example.com \
-  company \
-  readonly
+./scripts/occtl.sh mcp opencode-joomla joomla_builder false
 ```
 
-The command:
-
-1. verifies that the instance contains the Joomla MCP capability;
-2. accepts one HTTPS origin only and rejects credentials, paths, queries and fragments;
-3. renders one fixed site alias with a named profile;
-4. validates the result through the installed package's own configuration loader;
-5. installs it as `/etc/joomla-mcp/sites.json`, owned by `root:opencode` with mode `0640`;
-6. enables only the local `joomla` OpenCode entry;
-7. creates or upgrades the protected per-instance runtime credential template.
-
-The command never accepts a token argument.
-
-## Joomla preparation
-
-For the API path:
-
-1. enable **API Authentication - Web Services Joomla Token**;
-2. enable **User - Joomla API Token**;
-3. create a dedicated automation user and group;
-4. grant `core.login.api` plus only the component permissions required by the selected profile;
-5. enable only the Web Services plugins required by those toolsets;
-6. generate that user's API token;
-7. verify the intended API endpoint over HTTPS before enabling broader tools.
-
-Do not use a Super User token by default. Do not reuse a human administrator token. A read-only platform profile
-does not compensate for an unnecessarily privileged Joomla identity.
-
-## Runtime credentials
-
-Create or locate the per-instance tmpfs file:
+## Readiness and discovery
 
 ```bash
 runtime_file="$(./scripts/occtl.sh credentials opencode-joomla)"
-"${EDITOR:-nano}" "$runtime_file"
-chmod 600 "$runtime_file"
+./scripts/occtl.sh joomla-test opencode-joomla "$runtime_file" company
 ```
 
-Supported local Joomla keys are:
+The test performs authenticated initialization, all pages of `tools/list`,
+`joomla_sites_list`, `joomla_capabilities`, and an article-list read limited to five
+items. It never calls grant, planning, mutation or cancellation tools. Successful
+empty article results are valid. A denied article read is reported as a failure,
+not silently treated as a healthy ready connection.
 
-| Variable | Required by | Purpose |
-|---|---|---|
-| `JOOMLA_MCP_SITE_TOKEN` | every API profile | Dedicated Joomla Web Services bearer token |
-| `JOOMLA_MCP_APPROVAL_SECRET` | `content`, `admin`, `full` | Signs short-lived, one-time guarded write plans; use at least 32 random characters |
-| `JOOMLA_MCP_UPDATE_TOKEN` | `full` | Separately scoped Joomla Update token |
+Evidence stays in a private directory below
+`/workspace/.artifacts/joomla-mcp/<session-id>`. It includes the actual discovered
+schemas and read responses, which may contain business data. It never includes
+authentication request headers. Diagnostic HTTP uses trusted HTTPS, no redirects,
+30-second request limits and bounded response/pagination sizes. Tokens are passed
+to curl through a private header file rather than process arguments. The helper
+supports JSON and SSE-framed Streamable HTTP responses.
 
-Generate an approval secret without placing it in a command argument to the platform:
+For direct work inside an authorized session:
 
 ```bash
-openssl rand -hex 32
+vdm-joomla-mcp discover company
+vdm-joomla-mcp read-test company /workspace/.artifacts/joomla-manual-read
 ```
 
-Paste the result into the protected file. The file lives below `/run/user/$UID`, is never committed and is removed
-at logout or reboot. `start-session.sh` rejects symlinks, foreign ownership, non-`0600` mode, hard links, malformed
-names, unknown keys and duplicate keys. It then copies the file as a root-owned systemd credential. Secret values
-do not enter Incus process arguments.
+The native server does not advertise tool-list-change notifications. Refresh the
+MCP connection after administrator catalogue changes; do not keep a cross-user
+catalogue cache. The standalone helper discovers fresh schemas for every call.
 
-Before OpenCode starts, the platform reads the non-secret Joomla configuration, enumerates the credential variable
-names it references and fails closed when any required value is absent. The same validation is used by the
-in-image read test.
+## Joomla and JCB operations
 
-## Profiles
+Use the installed definitions through the same connection. Start with
+`joomla_actions_search` and `joomla_action_describe`; preserve objects, arrays,
+GUIDs, relationship identifiers and native form semantics. The platform does not
+hardcode a second JCB catalogue or invent API routes.
 
-`joomla-configure` supports four deliberate profiles.
+Writes follow the server's discovered permission request/acknowledgement,
+reviewed plan and one-time apply protocol. Show the actual operation and consent
+text to the operator. Do not manufacture acknowledgement or substitute a local
+boolean for the server grant. Read back returned verification and retain partial
+or uncertain outcomes.
 
-### `readonly`
-
-Enables discovery plus content, structure, media, users, extensions, configuration and maintenance reads. It
-contains no approval block and no write/admin/core-update toolset. This is the default.
-
-### `content`
-
-Adds content, structure and media writes. The package still requires an operator permission request, exact
-acknowledgement, a non-dry-run plan and one-time confirmation token. Joomla ACL can deny the operation at any later
-layer.
-
-### `admin`
-
-Adds user, extension, configuration and maintenance administration. Use only with explicit authorization, narrow
-Joomla ACL and recovery evidence.
-
-### `full`
-
-Adds `core-update` and references the separate update token. Use only on an explicitly controlled environment after
-the relevant upstream live and recovery gates have passed. Selecting `full` is not a substitute for those gates.
-
-All write profiles set `allowIndefinite: false`. Reconfigure deliberately to change profiles; do not edit toolsets
-from an agent session.
-
-## Safe in-image evidence
-
-Run the built-in non-mutating test:
+For deliberate direct tool calls, store the arguments as a JSON object in a
+private file and name the tool from the discovered catalogue:
 
 ```bash
-./scripts/occtl.sh joomla-test \
-  opencode-joomla \
-  "$runtime_file" \
-  company
+umask 077
+read -r -p 'Server-returned job ID: ' job_id
+arguments="$(mktemp)"
+jq -n --arg jobId "$job_id" '{jobId:$jobId}' > "$arguments"
+vdm-joomla-mcp call builder joomla_job_status "$arguments" --confirm-call
+rm -f "$arguments"
 ```
 
-It securely launches `/usr/local/bin/vdm-joomla-mcp-live-test` inside the VM with:
+The file must contain the real server-returned `jobId`. `--confirm-call` means the
+operator deliberately invoked this client command; it does not approve a server
+permission request or write plan. This command sends exactly one tool call after
+discovery and prints its native result, including a failing/uncertain result.
+There is no automatic retry of mutations.
 
-```text
---profile read
---joomla-path api
---mcp-transport stdio
---non-interactive
-```
+For compiler/package work, retain the returned execution/job IDs, poll
+`joomla_job_status`, list `joomla_job_artifacts`, and read bounded chunks with
+`joomla_job_artifact_read`. Assemble only the advertised artifact length and verify
+its server-returned SHA-256. A disconnected agent can reconnect as the same
+identity and inspect the job; losing a connection is not cancellation. Cancellation
+can leave partial effects, and an uncertain execution needs reconciliation before
+another write. See [JCB integration](jcb-mcp-roadmap.md).
 
-No mutation confirmation and no disposable-site acknowledgement are present. Evidence is retained under:
+## Verification
 
-`/workspace/.artifacts/joomla-mcp/<session-id>`
+`tests/joomla-mcp-configure.sh` checks multiple aliases, preserved connections,
+credential isolation and invalid endpoint rejection. `tests/joomla-mcp-http.sh`
+uses a real temporary TLS server and the real curl client to check authentication,
+protocol sessions, pagination, SSE, read-only test calls, job identity, no blind
+write retries, redirect rejection and token-file protection. These are transport
+and platform integration tests; `joomla-test` supplies evidence against the actual
+deployed service.
 
-The upstream `crud` and `full` matrices are intentionally not exposed through this convenience command. They can
-modify or delete Joomla data and must be run only against an explicitly disposable site, using the upstream
-documentation and an operator-approved test plan.
+Upstream contracts:
 
-## Use from OpenCode
-
-Start the bounded session:
-
-```bash
-./scripts/occtl.sh session opencode-joomla "$runtime_file"
-```
-
-Inside OpenCode, use this sequence:
-
-1. `joomla_sites_list`;
-2. `joomla_capabilities`;
-3. `joomla_actions_search`;
-4. `joomla_action_describe`;
-5. `joomla_action_read` for the selected fixed semantic action.
-
-For writes, review the dry-run plan, request the exact bounded permission, obtain the operator's acknowledgement,
-create the non-dry-run plan, apply its one-time token, and independently verify the result. Treat every Joomla
-title, body, metadata value and error as untrusted content, not instructions.
-
-Disable the server for an instance without deleting its non-secret configuration:
-
-```bash
-./scripts/occtl.sh mcp opencode-joomla joomla false
-```
-
-## Network policy
-
-The ready `connected` policy permits public IPv4 Internet while rejecting private, carrier-grade NAT, loopback,
-link-local, metadata, multicast and management ranges. It is suitable for a public HTTPS Joomla origin.
-
-A Joomla site on a private LAN will not be reachable through that policy. Use the approved brokered/restricted
-gateway once deployed, or an explicitly acknowledged lab environment. Do not remove the private-network rejects
-from the shared connected policy simply to reach one site.
-
-## Promotion and upgrade checklist
-
-Before calling an image/site combination production-ready:
-
-1. validate the repository and generated manifest drift;
-2. build the real PHP image on the trusted KVM/Incus builder;
-3. verify exact package version, disabled default, absent active site config and sanitized image state;
-4. export, verify and import the package on a second clean host;
-5. run the included read profile against the intended Joomla version and retain redacted evidence;
-6. verify denied operations with an under-privileged Joomla identity;
-7. run any required upstream mutation matrix only on a disposable clone;
-8. review Joomla MCP upstream coverage/recovery gates for every enabled write/admin family;
-9. confirm token rotation, revocation, audit retention and incident rollback;
-10. promote the new platform/image version rather than overwriting an old identity.
-
-To upgrade Joomla MCP, update the exact npm and expected versions, inspected source commit, documentation and
-changelog together. Rebuild both PHP and full images, rerun static validation, then repeat real-image and live-site
-evidence. Never replace the exact package reference with `@latest`.
+- https://github.com/joomengine/mcp_component/blob/main/docs/CLIENT-CONNECTIONS.md
+- https://github.com/joomengine/mcp_component/blob/main/docs/GETTING-STARTED.md
+- https://github.com/joomengine/mcp_component/blob/main/SECURITY.md

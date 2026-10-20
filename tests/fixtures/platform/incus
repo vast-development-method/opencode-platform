@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+state="${PLATFORM_TEST_STATE:?}"
+root="${PLATFORM_TEST_ROOT:?}"
+name="${PLATFORM_TEST_INSTANCE:-worker}"
+jq -nc --args '$ARGS.positional' -- "$@" >> "$state/calls.jsonl"
+if [[ $# == 1 && "$1" == info ]]; then exit 0; fi
+[[ "${1:-}" == --project ]] || exit 2
+project="$2"
+shift 2
+case "${1:-}" in
+    list)
+        [[ "$project" == vdm-agents && $# == 4 && "$2" == "$name" && "$3" == --format && "$4" == json ]] || exit 2
+        cat "$state/instance.json"
+        ;;
+    info|start)
+        [[ "$project" == vdm-agents && $# == 2 && "$2" == "$name" ]] || exit 2
+        ;;
+    network)
+        [[ "$project" == default && "$2" == acl ]] || exit 2
+        operation="$3"; acl="$4"
+        [[ "$acl" =~ ^vdm-service-[A-Za-z0-9-]+-[a-f0-9]{16}$ ]] || exit 2
+        mkdir -p "$state/acls"
+        case "$operation" in
+            show) [[ $# == 4 && -f "$state/acls/$acl.json" ]] || exit 1; cat "$state/acls/$acl.json" ;;
+            get) [[ $# == 5 && -f "$state/acls/$acl.json" ]] || exit 1; jq -r --arg key "$5" '.config[$key] // ""' "$state/acls/$acl.json" ;;
+            create)
+                [[ ! -e "$state/acls/$acl.json" && $# == 6 ]] || exit 2
+                [[ "$5" == user.vdm.platform=vdm-opencode-platform && "$6" == "user.vdm.instance=$name" ]] || exit 2
+                jq -n --arg name "$name" '{config:{"user.vdm.platform":"vdm-opencode-platform","user.vdm.instance":$name},ingress:[],egress:[]}' > "$state/acls/$acl.json"
+                ;;
+            edit)
+                [[ $# == 4 && -f "$state/acls/$acl.json" ]] || exit 2
+                jq -e 'if type == "object" and (.ingress | type == "array") and (.egress | type == "array") then . else error("Invalid ACL") end' > "$state/acls/$acl.json.new"
+                mv "$state/acls/$acl.json.new" "$state/acls/$acl.json"
+                ;;
+            *) exit 2 ;;
+        esac
+        ;;
+    config)
+        [[ "$project" == vdm-agents ]] || exit 2
+        if [[ "$2" == device ]]; then
+            operation="$3"
+            [[ "$4" == "$name" && "$5" == eth0 && $# == 9 ]] || exit 2
+            [[ "$6" == security.acls=vdm-service-* && "$7" == security.acls.default.ingress.action=reject && "$8" == security.acls.default.egress.action=reject && "$9" == security.ipv4_filtering=true ]] || exit 2
+            if [[ "$operation" == override ]]; then
+                jq -e '.[0].devices.eth0 == null' "$state/instance.json" >/dev/null
+            elif [[ "$operation" == set ]]; then
+                jq -e '.[0].devices.eth0 != null' "$state/instance.json" >/dev/null
+            else exit 2; fi
+            [[ "${PLATFORM_TEST_DEVICE_FAIL:-false}" != true ]] || exit 1
+            jq --arg acl "${6#*=}" '.[0].devices.eth0 = (.[0].expanded_devices.eth0 + {"security.acls":$acl,"security.acls.default.ingress.action":"reject","security.acls.default.egress.action":"reject","security.ipv4_filtering":"true"}) | .[0].expanded_devices.eth0 = .[0].devices.eth0' "$state/instance.json" > "$state/instance.new"
+            mv "$state/instance.new" "$state/instance.json"
+        else
+            [[ "$2" == set && "$3" == "$name" && $# == 4 && "$4" == user.vdm.service-network.sha256=* ]] || exit 2
+            jq --arg sha "${4#*=}" '.[0].expanded_config["user.vdm.service-network.sha256"]=$sha' "$state/instance.json" > "$state/instance.new"
+            mv "$state/instance.new" "$state/instance.json"
+        fi
+        ;;
+    exec)
+        [[ "$project" == vdm-agents && "$2" == "$name" ]] || exit 2
+        shift 2
+        while [[ "${1:-}" != -- && $# -gt 0 ]]; do shift; done
+        shift
+        case "${1:-}" in
+            true) [[ $# == 1 ]] ;;
+            test) [[ "$2" == -x && "$3" == /usr/local/bin/vdm-joomla-mcp ]] ;;
+            install) [[ "$2" == -d && "${*: -1}" == /etc/joomla-mcp ]] ;;
+            chown) [[ "${*: -1}" == /etc/joomla-mcp/sites.json ]] ;;
+            flock)
+                [[ "$2" == /etc/joomla-mcp/config.lock && "$3" == /usr/local/bin/vdm-joomla-mcp && "$4" == configure ]] || exit 2
+                shift 4
+                "$root/image/files/usr/local/libexec/vdm-joomla-mcp" configure \
+                    "$state/sites.json" "${PLATFORM_TEST_OPENCODE:?}" "$3" "$4" "$5" "$6" "${PLATFORM_TEST_AGENT:?}"
+                ;;
+            *) printf 'Unexpected guest command: %s\n' "$1" >&2; exit 2 ;;
+        esac
+        ;;
+    *) printf 'Unexpected Incus operation: %s\n' "$1" >&2; exit 2 ;;
+esac

@@ -13,7 +13,7 @@ printf '%q ' "$@" >> "${MOCK_INCUS_LOG:?MOCK_INCUS_LOG is required}"
 printf '\n' >> "$MOCK_INCUS_LOG"
 
 # The generic session fixture represents an image where Joomla MCP is disabled.
-if [ "${1:-}" = exec ] && [[ "$*" == *'.mcp.joomla.enabled == true'* ]]; then
+if [ "${1:-}" = exec ] && [[ "$*" == *'jq -e '* && "$*" == *'startswith("joomla_")'* ]]; then
     exit 1
 fi
 

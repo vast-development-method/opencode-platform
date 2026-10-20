@@ -59,7 +59,6 @@ class AuthorityContractTest(unittest.TestCase):
         toolchain = load_toolchain()
         expected_versions = {
             "git": toolchain["GIT_MCP_EXPECTED_VERSION"],
-            "joomla": toolchain["JOOMLA_MCP_EXPECTED_VERSION"],
             "playwright": toolchain["PLAYWRIGHT_MCP_EXPECTED_VERSION"],
         }
         for server, version in expected_versions.items():
@@ -67,6 +66,30 @@ class AuthorityContractTest(unittest.TestCase):
 
         self.assertTrue(config["mcp"]["git"]["enabled"])
         self.assertFalse(config["mcp"]["playwright"]["enabled"])
+
+        # Joomla supplies the server and tool catalogue; worker runtime pins
+        # must not recreate a second server package or a separate JCB endpoint.
+        joomla = servers["joomla"]
+        self.assertEqual("streamable-http", joomla["transport"])
+        self.assertEqual("ready-disabled", joomla["status"])
+        self.assertEqual("https://github.com/joomengine/mcp_component", joomla["source"])
+        self.assertNotIn("package", joomla)
+        self.assertNotIn("JOOMLA_MCP_PACKAGE", toolchain)
+        self.assertEqual("joomla", catalog["integrated_capabilities"]["jcb"]["server"])
+        self.assertNotIn("jcb", catalog.get("deferred_integrations", {}))
+
+    def test_node_runtime_lock_matches_the_provisioning_pin(self) -> None:
+        toolchain = load_toolchain()
+        node = load_yaml("manifest/sources.lock.yaml")["sources"]["node_runtime"]
+        self.assertEqual(toolchain["NODE_EXPECTED_VERSION"], node["runtime_version"])
+        self.assertEqual(toolchain["NODE_PACKAGE_VERSION"], node["build_ref"])
+        self.assertEqual(toolchain["NODESOURCE_SETUP_SHA256"], node["setup_sha256"])
+        self.assertEqual(
+            f'https://deb.nodesource.com/setup_{toolchain["NODE_MAJOR"]}.x',
+            node["setup_url"],
+        )
+        major, minor, _patch = map(int, toolchain["NODE_EXPECTED_VERSION"].split("."))
+        self.assertTrue((major == 24 and minor >= 16) or (major == 26 and minor >= 1))
 
     def test_session_policy_schema_preserves_fail_closed_controls(self) -> None:
         schema = json.loads(
