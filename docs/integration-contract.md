@@ -15,6 +15,14 @@ published native catalogue is authoritative. Native permissions, reviewed write
 plans, confirmation, idempotency, background jobs and artifact hashes remain
 owned by the server. A client-side label is not an authorization boundary.
 
+JoomEngine remains an independent, general-purpose image. This platform consumes
+the published image as supplied and adapts to its installed interfaces; it does
+not require changes to upstream Dockerfiles, entrypoints or image builds. Local
+administration uses commands already registered with `php cli/joomla.php`.
+Discover those commands and their help from the running installation. Direct
+console access is a trusted operator capability, separate from a remote agent's
+scoped MCP identity; it is not an automatic fallback for a denied remote call.
+
 Each site has a distinct non-secret configuration entry and a scoped Joomla
 identity. Tokens are supplied through the bounded runtime credential channel;
 OpenBao credentials stay on the controller. Static Joomla tokens require native

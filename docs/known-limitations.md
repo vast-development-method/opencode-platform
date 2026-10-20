@@ -11,6 +11,11 @@
   depend on installed extensions, synchronized definitions, the selected user's
   ACL and the current Joomla site's state. Client configuration does not bypass
   these native controls.
+- The published JoomEngine image remains independent of this platform. Its
+  existing Joomla CLI and MCP interfaces are consumed unchanged. Local CLI
+  availability and detached remote-job support are distinct capabilities;
+  integration checks must not substitute a custom upstream image to claim
+  compatibility with the published one.
 - Persistent JoomEngine service deployment and native API identity provisioning
   are provided by the companion Ductor integration. Existing Joomla volumes need
   an explicit MCP migration; changing image tags alone is insufficient.
