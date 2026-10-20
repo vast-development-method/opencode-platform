@@ -209,7 +209,11 @@ main() {
             case "$command" in
                 discover) (($# == 2 || $# == 3)) || fail 'Usage: vdm-joomla-mcp discover ALIAS [OUTPUT_DIR]' ;;
                 read-test) (($# == 3)) || fail 'Usage: vdm-joomla-mcp read-test ALIAS OUTPUT_DIR' ;;
-                call) (($# == 5)) && [[ "$5" == --confirm-call ]] || fail 'Usage: vdm-joomla-mcp call ALIAS TOOL ARGUMENTS_JSON_FILE --confirm-call' ;;
+                call)
+                    if [[ $# != 5 || "${5:-}" != --confirm-call ]]; then
+                        fail 'Usage: vdm-joomla-mcp call ALIAS TOOL ARGUMENTS_JSON_FILE --confirm-call'
+                    fi
+                    ;;
             esac
             open_connection "$alias"
             discover_tools

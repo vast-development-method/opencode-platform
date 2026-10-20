@@ -5,10 +5,10 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_DIR="${1:-}"
 SOURCE_PROJECT="${2:-}"
 PAYLOAD_BASE_URL="${3:-}"
-[ -d "$PACKAGE_DIR" ] && [ -n "$SOURCE_PROJECT" ] || {
+if [[ ! -d "$PACKAGE_DIR" || -z "$SOURCE_PROJECT" ]]; then
     printf 'Usage: %s PACKAGE_DIRECTORY IMAGE_SOURCE_PROJECT [HTTPS_PACKAGE_BASE_URL]\n' "$0" >&2
     exit 2
-}
+fi
 [[ "$SOURCE_PROJECT" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || {
     printf 'Invalid Incus image source project.\n' >&2
     exit 2
@@ -49,10 +49,10 @@ while IFS= read -r name; do
         disk="$name"
     fi
 done < <(jq -r '.payload[].name' "$PACKAGE_DIR/manifest.json")
-[ -n "$metadata" ] && [ -n "$disk" ] || {
+if [[ -z "$metadata" || -z "$disk" ]]; then
     printf 'Ductor download import requires a split Incus VM export; use the normal package import for unified images.\n' >&2
     exit 1
-}
+fi
 jq --argjson identity "$identity" --arg base "${PAYLOAD_BASE_URL%/}" \
     --arg metadata "$metadata" --arg disk "$disk" '
     $identity + {image_import:{
