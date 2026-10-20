@@ -87,108 +87,63 @@ and its private state directory.
 ./scripts/launch-vm.sh php opencode-llewellyn
 ```
 
-## 5. Configure JoomEngine MCP for Joomla
+## 5. Configure native Joomla and JCB MCP
 
-The PHP and full images contain the exact package recorded in `manifest/toolchain.env`. Configure one HTTPS Joomla
-origin; this writes only a root-owned, non-secret site definition and enables the local stdio entry:
+All images can connect to the current PHP MCP server. Configure the actual HTTPS
+site URL (subdirectories and the full MCP endpoint are supported):
 
 ```bash
-./scripts/occtl.sh joomla-configure \
-  opencode-llewellyn \
-  https://www.example.com \
-  company \
-  readonly
+./scripts/occtl.sh joomla-configure opencode-llewellyn https://joomla.example.com company readonly
 ```
 
-Profiles are explicit:
+The dedicated Joomla identity must have the intended native permissions.
+`readonly` and `write` are identity intent labels; they do not override Joomla
+ACL. The server supplies installed JCB definitions, reviewed plans, confirmations,
+durable jobs and artifact retrieval. See [JCB workflow](jcb-mcp-roadmap.md).
 
-- `readonly` is the default and contains no write/admin toolset;
-- `content` adds guarded content, structure and media writes;
-- `admin` adds guarded user, extension, configuration and maintenance administration;
-- `full` additionally exposes `core-update` and requires a separately scoped update token.
+For private sites, configure exact routes using `network-configure`; see
+[service networking](service-network.md). Shared Joomla services belong outside
+the worker VM and remain available after its session expires.
 
-Do not select `content`, `admin`, or `full` merely to make a read test pass. Joomla ACLs, enabled Web Services
-plugins, the package's permission grants and its one-time plans remain independent controls.
-
-## 6. Prepare runtime-only credentials
+## 6. Supply scoped runtime credentials
 
 ```bash
 runtime_file="$(./scripts/occtl.sh credentials opencode-llewellyn)"
 "${EDITOR:-nano}" "$runtime_file"
-chmod 600 "$runtime_file"
 ```
 
-For the normal read-only profile, set only:
+Set `JOOMLA_MCP_SITE_TOKEN` for the company site. The file remains mode 0600 on
+tmpfs; no secret belongs in OpenCode JSON or Incus arguments. Alternatively use
+`joomla-import INSTANCE DUCTOR_CLIENT_JSON` for a provisioned identity, or
+`credentials-fetch INSTANCE OPENBAO_CONFIG_JSON` for exact KV-v2 references.
+[Credential configuration](credentials-and-brokers.md) explains both paths.
 
-```dotenv
-JOOMLA_MCP_SITE_TOKEN=the-dedicated-joomla-api-token
-```
-
-The file is under `/run/user/$UID`, which is tmpfs. The script rejects symlinks, foreign ownership, hard links,
-unexpected names and duplicate variables. Tokens are copied through systemd credentials and never placed in an
-Incus command argument.
-
-A guarded write profile also requires a random approval secret of at least 32 characters:
+## 7. Load company standards and verify the connection
 
 ```bash
-openssl rand -hex 32
+./scripts/occtl.sh company-sync opencode-llewellyn /srv/company-standards
+./scripts/occtl.sh joomla-test opencode-llewellyn "$runtime_file" company
 ```
 
-Place the result in `JOOMLA_MCP_APPROVAL_SECRET`. The `full` profile additionally requires
-`JOOMLA_MCP_UPDATE_TOKEN`; do not reuse the normal Joomla API token.
+Company instructions come from a reviewed Git revision and survive disposable
+sessions at their external source. The MCP test performs native HTTPS
+initialization and discovery, reads supported non-mutating capabilities, and
+stores private evidence under `/workspace/.artifacts/joomla-mcp/`.
 
-## 7. Run the safe in-image Joomla test
-
-```bash
-./scripts/occtl.sh joomla-test \
-  opencode-llewellyn \
-  "$runtime_file" \
-  company
-```
-
-This executes `joomla-mcp-live-test` inside the VM with `--profile read`, Joomla API transport and stdio MCP
-transport. It has no mutation confirmation or disposable-site flag and writes redacted evidence under
-`/workspace/.artifacts/joomla-mcp/<session-id>`.
-
-The upstream `crud` and `full` live matrices are intentionally not wrapped by this convenience command. Run those
-only against an explicitly disposable Joomla site after reading the upstream live-testing documentation.
-
-## 8. Enable other required MCP servers
-
-Joomla was enabled by `joomla-configure`. Other integrations remain separate:
-
-```bash
-./scripts/occtl.sh mcp opencode-llewellyn github true
-./scripts/occtl.sh mcp opencode-llewellyn gitea true
-./scripts/occtl.sh mcp opencode-llewellyn playwright true
-```
-
-Enabling a local MCP now fails if its executable is absent. Enabling Joomla also fails if the target configuration
-is absent or invalid.
-
-## 9. Start OpenCode
+## 8. Start work and retain the outcome
 
 ```bash
 ./scripts/occtl.sh session opencode-llewellyn "$runtime_file"
+./scripts/occtl.sh handoff-export opencode-llewellyn /srv/reviews/task-001 review/outcome.md
 ```
 
-The session validates every credential name referenced by the Joomla site file before starting OpenCode. Inside
-OpenCode, call `joomla_sites_list`, then `joomla_capabilities`, `joomla_actions_search` and
-`joomla_action_describe` before executing an action.
+Native discovery is authoritative: use available schemas rather than old
+TypeScript tool names. Review plans before confirming effectful actions; resume
+uncertain work by its execution/job identity rather than blindly retrying writes.
+Store accepted decisions in the company/project repository for the next worker.
+See [company context](company-context.md) for artifact limits and provenance.
 
-The guest's OpenCode data directory lives under `/run` for this session.
-
-## 10. Configure model roles
-
-After provider access is working:
-
-```bash
-./scripts/configure-models.sh opencode-llewellyn
-```
-
-Use exact IDs shown by `opencode models`.
-
-## 11. Normal work
-
-Clone only repositories assigned to the session account, create an agent branch, run tests and open a pull request.
-Do not merge or release directly from an autonomous session.
+Other MCP services can be enabled individually using `occtl mcp INSTANCE SERVER
+true`. Model roles can be selected using `occtl models INSTANCE` and exact IDs
+from `opencode models`. Clone only assigned repositories, create an agent branch,
+run checks and open a PR; release decisions remain explicit.

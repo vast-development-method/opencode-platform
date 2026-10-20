@@ -38,8 +38,11 @@ This avoids four unrelated snowflake installers while keeping ordinary VMs small
 
 ## Credentials
 
-Long-lived credentials remain outside the VM. The VM receives a short-lived gateway token or performs an
-OpenCode-supported login inside an ephemeral XDG data directory under `/run`.
+Infrastructure credentials remain outside the VM. The VM receives scoped service
+tokens through bounded systemd credentials; use short leases where the downstream
+service supports them. OpenCode data remains ephemeral under `/run`. Company
+standards and reviewed handoffs live independently in durable repositories and
+storage, with a pinned instruction snapshot loaded into each worker.
 
 ## Browser testing
 

@@ -10,11 +10,11 @@ source "$SCRIPT_DIR/lib/joomla-mcp.sh"
 
 NAME="${1:-}"
 [ -n "$NAME" ] || die "Usage: $0 INSTANCE [HOST_RUNTIME_ENV_FILE] [SITE_ALIAS] [TTL]"
-HOST_ENV_FILE="${2:-/run/user/${UID}/vdm-opencode/${NAME}.env}"
+HOST_ENV_FILE="${2:-${VDM_RUNTIME_BASE:-/run/user/${UID}}/vdm-opencode/${NAME}.env}"
 SITE_ALIAS="${3:-company}"
 TTL="${4:-30m}"
 (($# <= 4)) || die "Usage: $0 INSTANCE [HOST_RUNTIME_ENV_FILE] [SITE_ALIAS] [TTL]"
-[[ "$SITE_ALIAS" =~ ^[A-Za-z][A-Za-z0-9_-]{0,63}$ ]] ||
+[[ "$SITE_ALIAS" =~ ^[a-z][a-z0-9_-]{0,63}$ ]] ||
     die "Unsafe Joomla site alias: $SITE_ALIAS"
 TTL_SECONDS="$(duration_to_seconds "$TTL")"
 ((TTL_SECONDS >= 60 && TTL_SECONDS <= 86400)) ||

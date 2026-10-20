@@ -38,12 +38,17 @@ if [ "$MCP_STATE" = true ]; then
             exit 1
         }
     fi
-    if [ "$MCP_SERVER" = joomla ]; then
+    if [[ "$MCP_SERVER" == joomla_* || "$MCP_SERVER" == joomla ]]; then
         test -r /etc/joomla-mcp/sites.json || {
             printf "Configure the Joomla target before enabling Joomla MCP.\n" >&2
             exit 1
         }
         /usr/local/bin/vdm-joomla-mcp-config-check /etc/joomla-mcp/sites.json
+        [[ "$MCP_SERVER" != joomla ]] || {
+            printf "Reconfigure the legacy Joomla connection with joomla-configure.\n" >&2
+            exit 1
+        }
+        jq -e --arg alias "${MCP_SERVER#joomla_}" ".sites[\$alias] != null" /etc/joomla-mcp/sites.json >/dev/null
     fi
 fi
 

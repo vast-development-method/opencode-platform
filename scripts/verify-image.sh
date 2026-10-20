@@ -22,6 +22,9 @@ project_cmd exec "$INSTANCE" -- test -x "$AGENT_HOME/.local/bin/opencode"
 project_cmd exec "$INSTANCE" -- test -d "$WORKSPACE_ROOT"
 project_cmd exec "$INSTANCE" -- test -f /etc/opencode/opencode.json
 project_cmd exec "$INSTANCE" -- test -f /etc/vdm-opencode-platform/build.json
+project_cmd exec "$INSTANCE" -- test -f /usr/local/libexec/vdm-company-context.py
+project_cmd exec "$INSTANCE" -- python3 /usr/local/libexec/vdm-company-context.py verify \
+    "$AGENT_HOME/.config/opencode/opencode.json"
 project_cmd exec "$INSTANCE" -- jq empty /etc/opencode/opencode.json
 # The jq program must reach the guest unchanged.
 # shellcheck disable=SC2016
@@ -39,6 +42,15 @@ project_cmd exec "$INSTANCE" --env "AGENT_HOME=$AGENT_HOME" -- bash -c \
            -o -name "*.token" -o -name "*.secret" -o -name "*.key" \) \
         -print -quit | grep -q .'
 project_cmd exec "$INSTANCE" -- jq empty "$AGENT_HOME/.config/opencode/opencode.json"
+
+assert_version \
+    Node \
+    "$NODE_EXPECTED_VERSION" \
+    "$(guest_output node -p 'process.versions.node')"
+# Compare the observed runtime with the evidence saved inside this image.
+# shellcheck disable=SC2016
+project_cmd exec "$INSTANCE" -- jq -e --arg node "$NODE_EXPECTED_VERSION" \
+    '.toolchain.node == $node' /etc/vdm-opencode-platform/build.json >/dev/null
 
 assert_version \
     OpenCode \
@@ -74,30 +86,26 @@ else
         "$AGENT_HOME/.config/opencode/opencode.json" >/dev/null
 fi
 
-if image_has_component "$VARIANT" joomla-mcp; then
-    assert_version \
-        "Joomla MCP" \
-        "$JOOMLA_MCP_EXPECTED_VERSION" \
-        "$(guest_output npm list --global --json --depth=0 | jq -r '.dependencies["@joomengine/joomla-mcp"].version')"
-    project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp
-    project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp-http
-    project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp-live-test
-    project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp-config-check
-    project_cmd exec "$INSTANCE" -- test -r /etc/joomla-mcp/sites.readonly.example.json
-    project_cmd exec "$INSTANCE" -- test ! -e /etc/joomla-mcp/sites.json
-    # shellcheck disable=SC2016
-    project_cmd exec "$INSTANCE" -- jq -e \
-        '.mcp.joomla.type == "local"
-         and .mcp.joomla.enabled == false
-         and .mcp.joomla.command[0] == "/usr/local/bin/vdm-joomla-mcp"
-         and .mcp.joomla.environment.JOOMLA_MCP_CONFIG == "/etc/joomla-mcp/sites.json"' \
-        "$AGENT_HOME/.config/opencode/opencode.json" >/dev/null
-else
-    project_cmd exec "$INSTANCE" -- test ! -x /usr/local/bin/vdm-joomla-mcp
-    # shellcheck disable=SC2016
-    project_cmd exec "$INSTANCE" -- jq -e '.mcp.joomla == null' \
-        "$AGENT_HOME/.config/opencode/opencode.json" >/dev/null
-fi
+# Native Joomla MCP is a remote service; no JavaScript Joomla server belongs in
+# any language image. Every variant can configure a remote site when needed.
+project_cmd exec "$INSTANCE" -- test -x /usr/local/libexec/vdm-joomla-mcp
+project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp
+project_cmd exec "$INSTANCE" -- test -x /usr/local/bin/vdm-joomla-mcp-config-check
+project_cmd exec "$INSTANCE" -- test -r /etc/joomla-mcp/sites.readonly.example.json
+project_cmd exec "$INSTANCE" -- test ! -e /etc/joomla-mcp/sites.json
+project_cmd exec "$INSTANCE" -- test ! -e /usr/local/bin/vdm-joomla-mcp-http
+project_cmd exec "$INSTANCE" -- test ! -e /usr/local/bin/vdm-joomla-mcp-live-test
+guest_output npm list --global --json --depth=0 |
+    jq -e '.dependencies["@joomengine/joomla-mcp"] == null' >/dev/null
+# shellcheck disable=SC2016
+project_cmd exec "$INSTANCE" -- jq -e \
+    '.mcp.joomla.type == "remote"
+     and .mcp.joomla.enabled == false
+     and .mcp.joomla.url == "{env:JOOMLA_MCP_URL}"
+     and .mcp.joomla.oauth == false
+     and .mcp.joomla.headers["X-Joomla-Token"] == "{env:JOOMLA_MCP_SITE_TOKEN}"
+     and ([.mcp | keys[] | select(startswith("joomla_"))] | length == 0)' \
+    "$AGENT_HOME/.config/opencode/opencode.json" >/dev/null
 
 if image_has_component "$VARIANT" typescript; then
     assert_version \

@@ -1,31 +1,18 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-
-if [ "${1:-}" = info ]; then
-    exit 0
-fi
-if [ "${1:-}" = --project ]; then
-    shift 2
-fi
-
-case "${1:-}:${2:-}" in
-    info:*|start:*)
-        exit 0
-        ;;
-    file:push)
-        args=("$@")
-        source_index="$((${#args[@]} - 2))"
-        source_file="${args[$source_index]}"
-        cp "$source_file" "${CAPTURE_CONFIG:?CAPTURE_CONFIG is required}"
-        ;;
-    exec:*)
-        if [[ "$*" == *vdm-joomla-mcp-config-check* ]]; then
-            jq -e . "${CAPTURE_CONFIG:?CAPTURE_CONFIG is required}" >/dev/null
+[[ "${1:-}" != info ]] || exit 0
+if [[ "${1:-}" == --project ]]; then shift 2; fi
+case "${1:-}" in
+    info|start) exit 0 ;;
+    exec)
+        shift 2
+        while [[ "${1:-}" != -- && $# -gt 0 ]]; do shift; done
+        shift
+        if [[ "${1:-}" == flock ]]; then
+            shift 3
+            [[ "${1:-}" == configure ]] || exit 1
+            "${JOOMLA_TEST_HELPER:?}" configure "${CAPTURE_CONFIG:?}" "${CAPTURE_OPENCODE:?}" "$4" "$5" "$6" "$7" "$8"
         fi
-        exit 0
         ;;
-    *)
-        printf 'Unexpected Joomla configure mock Incus invocation: %s\n' "$*" >&2
-        exit 1
-        ;;
+    *) printf 'Unexpected mock Incus command.\n' >&2; exit 1 ;;
 esac

@@ -7,10 +7,12 @@ source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/runtime-credentials.sh"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/joomla-mcp.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/company-context.sh"
 
 NAME="${1:-}"
 [ -n "$NAME" ] || die "Usage: $0 INSTANCE_NAME [HOST_RUNTIME_ENV_FILE] [TTL]"
-HOST_ENV_FILE="${2:-/run/user/${UID}/vdm-opencode/${NAME}.env}"
+HOST_ENV_FILE="${2:-${VDM_RUNTIME_BASE:-/run/user/${UID}}/vdm-opencode/${NAME}.env}"
 TTL="${3:-$DEFAULT_SESSION_TTL}"
 TTL_SECONDS="$(duration_to_seconds "$TTL")"
 ((TTL_SECONDS >= 60 && TTL_SECONDS <= 86400)) ||
@@ -30,6 +32,7 @@ else
 fi
 
 validate_joomla_mcp_runtime_credentials "$NAME" "$HOST_ENV_FILE"
+validate_company_context "$NAME"
 
 SESSION_ID="$(date +%s)-$$"
 UNIT="vdm-opencode-${SESSION_ID}"

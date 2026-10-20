@@ -312,13 +312,13 @@ COMMON_ENV=(
     "AGENT_USER=$AGENT_USER"
     "AGENT_HOME=$AGENT_HOME"
     "NODE_MAJOR=$NODE_MAJOR"
+    "NODE_EXPECTED_VERSION=$NODE_EXPECTED_VERSION"
+    "NODE_PACKAGE_VERSION=$NODE_PACKAGE_VERSION"
     "NODESOURCE_SETUP_SHA256=$NODESOURCE_SETUP_SHA256"
     "OPENCODE_PACKAGE=$OPENCODE_PACKAGE"
     "OPENCODE_EXPECTED_VERSION=$OPENCODE_EXPECTED_VERSION"
     "GIT_MCP_PACKAGE=$GIT_MCP_PACKAGE"
     "GIT_MCP_EXPECTED_VERSION=$GIT_MCP_EXPECTED_VERSION"
-    "JOOMLA_MCP_PACKAGE=$JOOMLA_MCP_PACKAGE"
-    "JOOMLA_MCP_EXPECTED_VERSION=$JOOMLA_MCP_EXPECTED_VERSION"
     "PLAYWRIGHT_MCP_PACKAGE=$PLAYWRIGHT_MCP_PACKAGE"
     "PLAYWRIGHT_MCP_EXPECTED_VERSION=$PLAYWRIGHT_MCP_EXPECTED_VERSION"
     "PLAYWRIGHT_PACKAGE=$PLAYWRIGHT_PACKAGE"
@@ -399,16 +399,21 @@ fi
 
 "$SCRIPT_DIR/verify-image.sh" "$BUILD_NAME" "$VARIANT"
 
+# Read the verified runtime itself; never attest a value copied from a manifest.
+worker_node_version="$(project_cmd exec "$BUILD_NAME" --mode=non-interactive -- \
+    node -p 'process.versions.node' | tr -d '\r')"
+[ "$worker_node_version" = "$NODE_EXPECTED_VERSION" ] ||
+    die "Node runtime changed after image verification"
+
 log "Publishing $ALIAS directly from the verified stopped instance"
 project_cmd stop "$BUILD_NAME" --timeout 60
 detach_cache
-project_cmd publish "$BUILD_NAME" --alias "$ALIAS" --reuse
-project_cmd image set-property "$ALIAS" org.vdm.platform "$PLATFORM_NAME"
-project_cmd image set-property "$ALIAS" org.vdm.version "$PLATFORM_VERSION"
-project_cmd image set-property "$ALIAS" org.vdm.variant "$VARIANT"
-project_cmd image set-property \
-    "$ALIAS" org.vdm.architecture \
-    "$(canonical_architecture "$(uname -m)")"
+project_cmd publish "$BUILD_NAME" --alias "$ALIAS" --reuse \
+    "org.vdm.platform=$PLATFORM_NAME" \
+    "org.vdm.version=$PLATFORM_VERSION" \
+    "org.vdm.variant=$VARIANT" \
+    "org.vdm.architecture=$(canonical_architecture "$(uname -m)")" \
+    "user.ductor.openclaw.node_version=$worker_node_version"
 
 BUILD_SUCCESS=true
 log "Published $ALIAS"

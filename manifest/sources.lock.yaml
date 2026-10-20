@@ -1,5 +1,5 @@
 schema: 1
-generated_on: 2026-07-27
+generated_on: 2026-10-20
 policy:
   require_immutable_refs_for_release: true
   allow_floating_refs_for_development: true
@@ -17,11 +17,13 @@ sources:
     repository: https://github.com/modelcontextprotocol/servers
     path: src/git
     build_ref: v2026.7.10
-  joomla_mcp:
-    repository: https://github.com/joomengine/joomla-mcp
-    inspected_ref: 7160096413dc71ed699e4f8e4988e4c7edc8c9e4
-    package: "@joomengine/joomla-mcp"
-    build_ref: 0.7.0
+  node_runtime:
+    repository: https://github.com/nodesource/distributions
+    setup_url: https://deb.nodesource.com/setup_24.x
+    setup_sha256: 6e3d580f5bd7ccf2aa1e8df8d35c60d78e873c3ff8beb282c9bebd914904ad72
+    package: nodejs
+    build_ref: 24.22.0-1nodesource1
+    runtime_version: 24.22.0
   github_mcp:
     repository: https://github.com/github/github-mcp-server
     build_ref: REMOTE_NOT_BUNDLED
@@ -35,9 +37,10 @@ sources:
   nextcloud_mcp:
     repository: https://github.com/cbcoutinho/nextcloud-mcp-server
     build_ref: DISABLED_UNTIL_AUDITED
-deferred_integrations:
-  jcb_mcp:
-    build_ref: DISABLED_UNTIL_REPOSITORY_AND_RELEASE_EXIST
+  joomla_jcb_mcp:
+    repository: https://github.com/joomengine/mcp_component
+    inspected_ref: 73ec25e1f0ba2c2d27752e371406b41a1fd87e6f
+    build_ref: REMOTE_NOT_BUNDLED
 
 github_actions:
   checkout: 3d3c42e5aac5ba805825da76410c181273ba90b1

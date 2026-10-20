@@ -35,6 +35,20 @@ if [ -z "$alias_name" ] || [ "$alias_name" = null ]; then
 fi
 project_cmd image show "$alias_name" >/dev/null 2>&1 && die "Image alias already exists: $alias_name"
 project_cmd image import "${payload_files[@]}" --alias "$alias_name"
+expected_fingerprint="$(jq -r '.image_fingerprint // empty' "$PACKAGE_DIR/manifest.json")"
+expected_node="$(jq -r '.worker_node_version // empty' "$PACKAGE_DIR/manifest.json")"
+if [ -n "$expected_fingerprint" ]; then
+    # Verify the imported content and baked-in attestation. Never repair a
+    # mismatched image by setting the expected property from configuration.
+    project_cmd image list "$alias_name" --format json | jq -e \
+        --arg alias "$alias_name" --arg fingerprint "$expected_fingerprint" \
+        --arg node "$expected_node" '
+          [.[] | select(any(.aliases[]?; .name == $alias))]
+          | length == 1
+            and .[0].fingerprint == $fingerprint
+            and .[0].properties["user.ductor.openclaw.node_version"] == $node
+        ' >/dev/null || die "Imported image fingerprint or Node attestation does not match the verified package"
+fi
 project_cmd image set-property "$alias_name" org.vdm.platform "$(jq -r '.platform' "$PACKAGE_DIR/manifest.json")"
 project_cmd image set-property "$alias_name" org.vdm.version "$(jq -r '.version' "$PACKAGE_DIR/manifest.json")"
 project_cmd image set-property "$alias_name" org.vdm.variant "$(jq -r '.variant' "$PACKAGE_DIR/manifest.json")"

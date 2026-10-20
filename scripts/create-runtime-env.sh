@@ -56,10 +56,8 @@ STT_MCP_TOKEN=
 VDM_LOCAL_LLM_BASE_URL=http://10.248.18.1:11434/v1
 VDM_LOCAL_LLM_MODEL=
 
-# Local JoomEngine MCP for Joomla. Values are inherited only by the bounded session.
+# Native Joomla/JCB MCP. Values are inherited only by the bounded session.
 JOOMLA_MCP_SITE_TOKEN=
-JOOMLA_MCP_APPROVAL_SECRET=
-JOOMLA_MCP_UPDATE_TOKEN=
 EOF
     chmod 0600 "$FILE"
 fi
@@ -71,8 +69,6 @@ ensure_key() {
 
 # Upgrade existing per-instance files without changing any existing value.
 ensure_key JOOMLA_MCP_SITE_TOKEN
-ensure_key JOOMLA_MCP_APPROVAL_SECRET
-ensure_key JOOMLA_MCP_UPDATE_TOKEN
 chmod 0600 "$FILE"
 validate_runtime_file "$FILE"
 

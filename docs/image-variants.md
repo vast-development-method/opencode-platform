@@ -20,11 +20,10 @@ Java development image.
 
 ## Build-time capabilities
 
-Browser, database and `joomla-mcp` are ready composable components. The Joomla
-capability installs an exact public npm release, stable local wrappers, a
-configuration validator and a disabled OpenCode stdio entry. It belongs only to
-the PHP and full images; adding it to another image requires an intentional
-manifest change and regenerated evidence.
+Browser, database and `joomla-mcp` are ready composable components. Every image
+includes the native Joomla/JCB HTTP client and configuration validator. OpenCode
+connects directly to approved remote sites. There is no bundled Node Joomla
+server and no requirement for the PHP toolchain merely to call the service.
 
 Android, GPU, rootless containers, GUI, audio and security tooling are
 catalogued as planned so the schema can grow without inventing combinations or
@@ -40,8 +39,8 @@ claiming unfinished support.
 - `lab`: experimental hardware policy requiring explicit acknowledgement.
 
 A public HTTPS Joomla origin works with `connected`. A private Joomla origin
-does not; use an approved gateway policy or a deliberate lab environment
-instead of weakening the common ACL.
+does not; use `occtl network-configure` with exact service addresses and ports,
+or the explicit Ductor worker pool policy. See [private routes](service-network.md).
 
 ## Resource sizes
 

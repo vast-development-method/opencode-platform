@@ -1,0 +1,250 @@
+#!/usr/bin/env bash
+# Thin diagnostic client. OpenCode connects directly to the Joomla PHP MCP server.
+set -Eeuo pipefail
+umask 077
+fail() { printf 'Joomla MCP: %s\n' "$*" >&2; exit 1; }
+valid_alias() { [[ "$1" =~ ^[a-z][a-z0-9_-]{0,63}$ ]]; }
+valid_token_key() { [[ "$1" =~ ^JOOMLA_MCP_[A-Z][A-Z0-9_]{0,63}_TOKEN$ ]]; }
+validate_url() {
+    local url="$1" host port
+    [[ "$url" =~ ^https://([A-Za-z0-9][A-Za-z0-9.-]*)(:([0-9]{1,5}))?(/[A-Za-z0-9._~/-]+)?$ ]] ||
+        fail 'Use an HTTPS endpoint without credentials, query, fragment or escaped path characters.'
+    host="${BASH_REMATCH[1]}"; port="${BASH_REMATCH[3]:-443}"
+    [[ "$host" != *..* && "$host" != *.-* && "$host" != *"-."* && "$host" != *- ]] || fail 'Invalid endpoint hostname.'
+    ((10#$port >= 1 && 10#$port <= 65535)) || fail 'HTTPS port is outside 1-65535.'
+    [[ "$url" == */api/index.php/v1/joomengine-mcp ]] || fail 'Supply the full endpoint ending in /api/index.php/v1/joomengine-mcp.'
+    [[ "$url" != *'/../'* && "$url" != *'/./'* && "${url#https://}" != *'//'* ]] || fail 'Invalid endpoint path.'
+}
+check_config() {
+    local config="$1" alias url key
+    [[ -f "$config" && ! -L "$config" ]] || fail 'Configuration must be a regular non-symlink file.'
+    jq -e '
+      type == "object" and .version == 1 and (.defaultSite | type == "string")
+      and (.sites | type == "object" and length > 0 and length <= 100)
+      and (.sites[.defaultSite] != null)
+      and all(.sites[]; type == "object" and (.url | type == "string")
+        and (.tokenEnv | type == "string") and (.access == "readonly" or .access == "write"))
+      and ([.sites[].tokenEnv] | length == (unique | length))
+    ' "$config" >/dev/null || fail 'Invalid site configuration or duplicate token references.'
+    while IFS=$'\t' read -r alias url key; do
+        valid_alias "$alias" || fail 'Aliases use lowercase letters, digits, hyphens and underscores (64 characters maximum).'
+        valid_token_key "$key" || fail 'Invalid dedicated Joomla token variable name.'
+        validate_url "$url"
+    done < <(jq -r '.sites | to_entries[] | [.key,.value.url,.value.tokenEnv] | @tsv' "$config")
+}
+update_opencode() (
+    # An agent controls its home and every parent of its configuration file. All
+    # access to that tree happens with the agent's uid, including reads and temps.
+    ((EUID != 0)) || fail 'OpenCode configuration updates must run as the unprivileged agent.'
+    local config="$1" input next alias url token_key
+    input="$(mktemp)"; next=''
+    trap 'rm -f -- "$input"; [[ -z "$next" ]] || rm -f -- "$next"' EXIT
+    head -c 16385 > "$input"
+    [[ $(wc -c < "$input") -le 16384 ]] || fail 'Connection metadata exceeds its byte limit.'
+    alias="$(jq -er '.alias | strings' "$input")"
+    url="$(jq -er '.url | strings' "$input")"
+    token_key="$(jq -er '.tokenEnv | strings' "$input")"
+    valid_alias "$alias" || fail 'Invalid connection alias.'
+    valid_token_key "$token_key" || fail 'Invalid connection token reference.'
+    validate_url "$url"
+    [[ -f "$config" && ! -L "$config" ]] || fail 'OpenCode configuration is missing or a symbolic link.'
+    next="$(mktemp "${config}.new.XXXXXX")"
+    jq --arg alias "$alias" --arg url "$url" --arg key "$token_key" '
+      del(.mcp.joomla) | .mcp[("joomla_" + $alias)] = {
+        type:"remote",url:$url,oauth:false,headers:{"X-Joomla-Token":("{env:"+$key+"}")},
+        enabled:true,timeout:30000
+      }' "$config" > "$next"
+    chmod 0640 "$next"
+    mv -f -- "$next" "$config"
+    next=''
+)
+configure_site() (
+    local config="$1" opencode="$2" alias="$3" url="$4" access="$5" token_key="$6" agent_user="$7" temp next_config
+    valid_alias "$alias" || fail 'Aliases use lowercase letters, digits, hyphens and underscores (64 characters maximum).'
+    validate_url "$url"
+    valid_token_key "$token_key" || fail 'Invalid dedicated Joomla token variable name.'
+    [[ "$access" == readonly || "$access" == write ]] || fail 'Access intent must be readonly or write; Joomla ACL enforces authority.'
+    [[ "$(id -u "$agent_user")" != 0 ]] || fail 'The agent account must be unprivileged.'
+    temp="$(mktemp -d)"
+    next_config=''
+    trap 'rm -rf -- "$temp"; [[ -z "$next_config" ]] || rm -f -- "$next_config"' EXIT
+    if [[ -e "$config" || -L "$config" ]]; then
+        check_config "$config"
+        cp "$config" "$temp/sites.json"
+    else
+        jq -n --arg alias "$alias" '{version:1,defaultSite:$alias,sites:{}}' > "$temp/sites.json"
+    fi
+    jq --arg alias "$alias" --arg url "$url" --arg access "$access" --arg key "$token_key" \
+        '.sites[$alias] = {url:$url,tokenEnv:$key,access:$access}' "$temp/sites.json" > "$temp/new-sites.json"
+    check_config "$temp/new-sites.json"
+    jq -n --arg alias "$alias" --arg url "$url" --arg key "$token_key" \
+        '{alias:$alias,url:$url,tokenEnv:$key}' > "$temp/connection.json"
+    if ((EUID == 0)); then
+        runuser -u "$agent_user" -- "${BASH_SOURCE[0]}" update-opencode "$opencode" < "$temp/connection.json"
+    else
+        [[ "$(id -u "$agent_user")" == "$EUID" ]] || fail 'Cannot configure another user without root.'
+        update_opencode "$opencode" < "$temp/connection.json"
+    fi
+    next_config="$(mktemp "${config}.new.XXXXXX")"
+    install -m 0640 "$temp/new-sites.json" "$next_config"
+    [[ ! -f "$config" ]] || chown --reference="$config" "$next_config"
+    mv -f "$next_config" "$config"
+    next_config=''
+)
+open_connection() {
+    local alias="$1" config="${JOOMLA_MCP_CONFIG:-/etc/joomla-mcp/sites.json}" key file_key token_file
+    check_config "$config"
+    valid_alias "$alias" || fail 'Invalid site alias.'
+    jq -e --arg alias "$alias" '.sites[$alias] != null' "$config" >/dev/null || fail 'Site alias is not configured.'
+    endpoint="$(jq -r --arg alias "$alias" '.sites[$alias].url' "$config")"
+    key="$(jq -r --arg alias "$alias" '.sites[$alias].tokenEnv' "$config")"
+    token="${!key:-}"; file_key="${key}_FILE"; token_file="${!file_key:-}"
+    [[ -z "$token" || -z "$token_file" ]] || fail 'Provide token environment value or its _FILE reference, not both.'
+    if [[ -n "$token_file" ]]; then
+        [[ -f "$token_file" && ! -L "$token_file" ]] || fail 'Token file must be a regular non-symlink file.'
+        [[ "$(stat -c '%u:%a:%h' "$token_file")" == "$(id -u):600:1" ]] || fail 'Token file must be owned by current user, mode 0600, with one hard link.'
+        [[ $(stat -c '%s' "$token_file") -le 16385 ]] || fail 'Token file exceeds the byte limit.'
+        token="$(cat "$token_file")"
+    fi
+    [[ "$token" =~ ^[A-Za-z0-9._~+/=-]+$ && ${#token} -le 16384 ]] || fail "Set $key or its private _FILE reference to a valid Joomla API token."
+    scratch="$(mktemp -d)"; session=''; protocol=''; request_id=0
+    trap close_connection EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    request initialize '{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"vdm-opencode-diagnostics","version":"1.0.0"}}'
+    protocol="$(jq -r '.result.protocolVersion // empty' "$scratch/response.json")"
+    case "$protocol" in 2025-06-18|2025-03-26|2024-11-05) ;; *) fail 'Server negotiated an unsupported MCP protocol version.' ;; esac
+    request notifications/initialized '{}' true
+}
+headers_file() {
+    printf 'Accept: application/json, text/event-stream\nContent-Type: application/json\nX-Joomla-Token: %s\n' "$token" > "$scratch/headers"
+    [[ -z "$session" ]] || printf 'Mcp-Session-Id: %s\n' "$session" >> "$scratch/headers"
+    [[ -z "$protocol" ]] || printf 'MCP-Protocol-Version: %s\n' "$protocol" >> "$scratch/headers"
+}
+request() {
+    local method="$1" params="$2" notification="${3:-false}" status next_session
+    headers_file
+    request_id=$((request_id + 1))
+    printf '%s' "$params" > "$scratch/params.json"
+    jq -n --arg method "$method" --slurpfile params "$scratch/params.json" --argjson id "$request_id" --argjson notification "$notification" \
+        '{jsonrpc:"2.0",method:$method,params:$params[0]} + (if $notification then {} else {id:$id} end)' > "$scratch/request"
+    if ! status="$(curl --silent --show-error --proto '=https' --tlsv1.2 --connect-timeout 10 --max-time 30 \
+        --max-filesize 5242880 --request POST --header "@$scratch/headers" --data-binary "@$scratch/request" \
+        --dump-header "$scratch/response-headers" --output "$scratch/body" --write-out '%{http_code}' "$endpoint")"; then
+        fail 'Transport failed; do not replay a mutation. Inspect its server execution/job before retrying.'
+    fi
+    [[ "$status" =~ ^2[0-9][0-9]$ ]] || fail "Endpoint returned HTTP $status; no automatic retry was attempted."
+    next_session="$(awk 'tolower($1)=="mcp-session-id:" {sub(/\r$/, ""); print $2}' "$scratch/response-headers")"
+    if [[ -n "$next_session" ]]; then
+        [[ "$next_session" =~ ^[A-Za-z0-9._~-]{1,256}$ ]] || fail 'Invalid MCP session header.'
+        session="$next_session"
+    fi
+    [[ "$notification" != true ]] || return 0
+    [[ $(wc -c < "$scratch/body") -le 5242880 ]] || fail 'Response exceeds the byte limit.'
+    if jq -e 'type == "object"' "$scratch/body" >/dev/null 2>&1; then
+        cp "$scratch/body" "$scratch/response.json"
+    else
+        awk '/^data:/ {sub(/^data: ?/, ""); sub(/\r$/, ""); data=data $0 "\n"}
+             /^\r?$/ {if(data!=""){print data; data=""}}
+             END {if(data!="") print data}' "$scratch/body" |
+            jq -s --argjson id "$request_id" '[.[] | select(type == "object" and .id == $id)] | if length == 1 then .[0] else error("Missing or duplicate response") end' > "$scratch/response.json" ||
+            fail 'Invalid Streamable HTTP response.'
+    fi
+    jq -e --argjson id "$request_id" '.jsonrpc == "2.0" and .id == $id and has("result") and (has("error") | not)' \
+        "$scratch/response.json" >/dev/null || fail 'Server returned a protocol error; inspect endpoint and permissions.'
+}
+close_connection() {
+    local code=$?
+    trap - EXIT
+    if [[ -n "${scratch:-}" ]]; then
+        if [[ -n "${session:-}" ]]; then
+            headers_file
+            curl --silent --proto '=https' --tlsv1.2 --connect-timeout 2 --max-time 5 --max-filesize 65536 \
+                --request DELETE --header "@$scratch/headers" --output /dev/null "$endpoint" >/dev/null 2>&1 || true
+        fi
+        rm -rf "$scratch"
+    fi
+    exit "$code"
+}
+discover_tools() {
+    local cursor='' previous='[]' page=0
+    printf '[]\n' > "$scratch/tools.json"
+    while :; do
+        page=$((page + 1)); ((page <= 100)) || fail 'Tool pagination exceeded 100 pages.'
+        printf '%s' "$cursor" > "$scratch/cursor"
+        request tools/list "$(jq -n --rawfile cursor "$scratch/cursor" 'if $cursor == "" then {} else {cursor:$cursor} end')"
+        jq -e '.result.tools | type == "array" and all(.[]; (.name | type == "string") and (.inputSchema | type == "object"))' "$scratch/response.json" >/dev/null || fail 'Invalid tool catalogue.'
+        jq -s '.[0] + .[1].result.tools' "$scratch/tools.json" "$scratch/response.json" > "$scratch/tools-next.json"
+        mv "$scratch/tools-next.json" "$scratch/tools.json"
+        cursor="$(jq -r '.result.nextCursor // empty' "$scratch/response.json")"
+        [[ -n "$cursor" ]] || break
+        [[ ${#cursor} -le 4096 ]] || fail 'Invalid pagination cursor.'
+        printf '%s' "$cursor" > "$scratch/cursor"
+        jq -e --rawfile cursor "$scratch/cursor" 'index($cursor) == null' <<< "$previous" >/dev/null || fail 'Repeated pagination cursor.'
+        previous="$(jq --rawfile cursor "$scratch/cursor" '. + [$cursor]' <<< "$previous")"
+    done
+    jq -e 'map(.name) | length == (unique | length)' "$scratch/tools.json" >/dev/null || fail 'Duplicate tool identities; refresh connection.'
+}
+call_tool() {
+    local name="$1" arguments="$2"
+    jq -e --arg name "$name" 'any(.[]; .name == $name)' "$scratch/tools.json" >/dev/null || fail 'Tool is unavailable to this Joomla identity.'
+    printf '%s' "$arguments" > "$scratch/arguments.json"
+    request tools/call "$(jq -n --arg name "$name" --slurpfile arguments "$scratch/arguments.json" '{name:$name,arguments:$arguments[0]}')"
+    if ! jq -e '.result.isError != true' "$scratch/response.json" >/dev/null; then
+        jq '.result' "$scratch/response.json"
+        fail 'Tool reported an error; inspect server execution state before repeating an operation.'
+    fi
+}
+main() {
+    local command="${1:-help}" alias output tool arguments
+    case "$command" in
+        config-check) (($# == 2)) || fail 'Usage: vdm-joomla-mcp config-check CONFIG'; check_config "$2" ;;
+        configure)
+            (($# == 8)) || fail 'Internal configure requires CONFIG OPENCODE_CONFIG ALIAS ENDPOINT ACCESS TOKEN_ENV AGENT_USER.'
+            configure_site "$2" "$3" "$4" "$5" "$6" "$7" "$8"
+            ;;
+        update-opencode) (($# == 2)) || fail 'Internal update requires OPENCODE_CONFIG.'; update_opencode "$2" ;;
+        discover|read-test|call)
+            alias="${2:-}"; valid_alias "$alias" || fail 'Supply a configured site alias.'
+            case "$command" in
+                discover) (($# == 2 || $# == 3)) || fail 'Usage: vdm-joomla-mcp discover ALIAS [OUTPUT_DIR]' ;;
+                read-test) (($# == 3)) || fail 'Usage: vdm-joomla-mcp read-test ALIAS OUTPUT_DIR' ;;
+                call) (($# == 5)) && [[ "$5" == --confirm-call ]] || fail 'Usage: vdm-joomla-mcp call ALIAS TOOL ARGUMENTS_JSON_FILE --confirm-call' ;;
+            esac
+            open_connection "$alias"
+            discover_tools
+            if [[ "$command" == call ]]; then
+                tool="$3"; [[ -f "$4" ]] || fail 'Arguments must be a JSON object file.'
+                [[ $(wc -c < "$4") -le 1048576 ]] || fail 'Arguments exceed byte limit.'
+                jq -e 'type == "object"' "$4" >/dev/null || fail 'Arguments must be a JSON object.'
+                arguments="$(cat "$4")"
+                call_tool "$tool" "$arguments"
+                jq '.result' "$scratch/response.json"
+            elif [[ "$command" == discover && $# == 2 ]]; then
+                cat "$scratch/tools.json"
+            else
+                output="$3"
+                [[ ! -L "$output" ]] || fail 'Output directory cannot be a symbolic link.'
+                # umask 077 also protects any parents created by mkdir -p.
+                mkdir -p "$output"
+                [[ "$(stat -c '%u:%a' "$output")" == "$(id -u):700" ]] || fail 'Output directory must be owned by current user with mode 0700.'
+                install -m 0600 "$scratch/tools.json" "$output/tools.json"
+                if [[ "$command" == read-test ]]; then
+                    for tool in joomla_sites_list joomla_capabilities joomla_content_articles_list; do
+                        arguments='{}'
+                        [[ "$tool" != joomla_content_articles_list ]] || arguments='{"offset":0,"limit":5}'
+                        call_tool "$tool" "$arguments"
+                        install -m 0600 "$scratch/response.json" "$output/$tool.json"
+                    done
+                    printf 'Authenticated discovery, identity, capabilities and article read passed.\n'
+                fi
+            fi
+            ;;
+        help|--help|-h)
+            printf '%s\n' 'Joomla MCP: config-check CONFIG | discover ALIAS [OUTPUT_DIR] | read-test ALIAS OUTPUT_DIR | call ALIAS TOOL ARGUMENTS_JSON_FILE --confirm-call' \
+                'Uses native Joomla token and server-owned ACL, grants, plans, jobs and artifacts. Never fabricates approval.'
+            ;;
+        *) fail 'Unknown command. Use --help.' ;;
+    esac
+}
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then main "$@"; fi

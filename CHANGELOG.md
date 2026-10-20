@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Replaced the legacy Joomla TypeScript adapter with native Joomla/JCB MCP over
+  authenticated HTTPS in all six worker variants, including multisite discovery
+  and server-owned action, job and artifact workflows.
+- Added pinned external company instruction snapshots, startup integrity checks
+  and explicit durable review handoffs with provenance.
+- Added scoped OpenBao KV-v2 credential retrieval, Ductor client-identity import
+  and exact per-worker private service routes.
+- Pinned and enforced Node 24.22.0 and carried observed runtime/image identities
+  through signed packages into Ductor pool configuration.
+- Added real TLS protocol tests, credential and path rejection cases, snapshot
+  installation checks and Ductor/JoomEngine integration contracts.
+
 - Made VM launch metadata atomic, safe when `USER` is absent, and self-cleaning
   when a newly created instance cannot start.
 - Replaced the checkout-based root timer target with a root-owned installed

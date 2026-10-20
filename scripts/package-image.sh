@@ -11,10 +11,28 @@ variant_exists "$VARIANT" || die "Unknown variant: $VARIANT"
 ALIAS="$(image_alias "$VARIANT" "$ARCHITECTURE")"
 ARTIFACT_ID="$(artifact_id "$VARIANT" "$ARCHITECTURE")"
 
+# Resolve once, then export by immutable identity so an alias moving during
+# packaging cannot change the payload after its metadata has been captured.
+image_identity="$(project_cmd image list "$ALIAS" --format json | jq -ce \
+    --arg alias "$ALIAS" --arg platform "$PLATFORM_NAME" \
+    --arg version "$PLATFORM_VERSION" --arg variant "$VARIANT" \
+    --arg node "$NODE_EXPECTED_VERSION" '
+      [.[] | select(any(.aliases[]?; .name == $alias))]
+      | if length == 1 then .[0] else error("Image alias must resolve once") end
+      | select(.type == "virtual-machine"
+          and (.fingerprint | test("^[a-f0-9]{64}$"))
+          and .properties["org.vdm.platform"] == $platform
+          and .properties["org.vdm.version"] == $version
+          and .properties["org.vdm.variant"] == $variant
+          and .properties["user.ductor.openclaw.node_version"] == $node)
+    ')" || die "Image identity or verified Node attestation is missing or differs from this release"
+image_fingerprint="$(jq -r '.fingerprint' <<< "$image_identity")"
+worker_node_version="$(jq -r '.properties["user.ductor.openclaw.node_version"]' <<< "$image_identity")"
+
 install -d -m 0750 "$OUTPUT_DIR"
 find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
 install -d -m 0750 "$OUTPUT_DIR/payload" "$OUTPUT_DIR/evidence"
-project_cmd image export "$ALIAS" "$OUTPUT_DIR/payload/$ARTIFACT_ID"
+project_cmd image export "$image_fingerprint" "$OUTPUT_DIR/payload/$ARTIFACT_ID"
 
 source_revision="unknown"
 source_tag=""
@@ -40,6 +58,8 @@ jq -n \
     --arg version "$PLATFORM_VERSION" \
     --arg variant "$VARIANT" \
     --arg image "$ALIAS" \
+    --arg image_fingerprint "$image_fingerprint" \
+    --arg worker_node_version "$worker_node_version" \
     --arg architecture "$ARCHITECTURE" \
     --arg incus_architecture "$(uname -m)" \
     --arg source_revision "$source_revision" \
@@ -53,6 +73,8 @@ jq -n \
       version:$version,
       variant:$variant,
       image:$image,
+      image_fingerprint:$image_fingerprint,
+      worker_node_version:$worker_node_version,
       architecture:$architecture,
       incus_architecture:$incus_architecture,
       source_revision:$source_revision,

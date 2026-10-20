@@ -1,66 +1,30 @@
 # MCP catalogue
 
-## Enabled
+`manifest/mcp-catalog.yaml` records the approved integrations. Git and Playwright
+remain local MCP tools; GitHub, Gitea and Nextcloud remain individually enabled
+remote integrations with their own scoped identities.
 
-### Git
+## Joomla and JCB
 
-Uses `mcp-server-git` from the Model Context Protocol project. It can inspect and modify repositories and is still
-described upstream as early development. Version `2026.7.10` is preinstalled and constrained to `/workspace`.
+Every image supports the current PHP JoomEngine server over native Streamable
+HTTP. No Node-based Joomla server is installed. Configure one or more sites
+using `occtl joomla-configure`; OpenCode connects directly to the approved
+HTTPS endpoint with an environment-referenced Joomla token. Entries are disabled
+until configured. Use `joomla-test` to obtain non-mutating discovery evidence.
 
-### Playwright
+JCB is integrated through the same server. Synchronize installed component APIs
+and JCB commands on the Joomla side after extension changes. Discover and page
+the actual catalogue, then use its native schemas, permissions, reviewed write
+flow, durable jobs and hash-verified artifacts. Do not build a separate JCB MCP
+server or keep a hardcoded copy of its capabilities in this repository.
 
-Microsoft's Playwright MCP is installed in PHP, TypeScript and full images. Keep it for exploratory, persistent
-browser QA. The package is pinned and runs with an isolated browser profile. For large deterministic suites,
-ordinary Playwright tests or the Playwright CLI are more token-efficient.
+The optional `joomengine/mcp_client` bridge remains available for other hosts
+that cannot use native HTTP. OpenCode does not need it for this connection.
 
-## Installed but operator-enabled
+## Tool scope
 
-### JoomEngine MCP for Joomla
-
-`@joomengine/joomla-mcp@0.7.0` is installed only in the PHP and full images. It is registered as a local stdio
-server and remains disabled in the image. `joomla-configure` must first create a validated, root-owned site file for
-an HTTPS origin; only then does it enable the entry for that instance.
-
-The package is sourced from `https://github.com/joomengine/joomla-mcp` and its inspected repository commit and npm
-release are recorded in `manifest/sources.lock.yaml`. Build verification checks the installed npm version, stable
-wrappers, read-only example, absent active site file and disabled OpenCode state.
-
-The local transport opens no inbound port and needs no MCP HTTP bearer/JWKS configuration. The child process
-inherits a dedicated Joomla Web Services bearer token through the bounded systemd session credential. Write
-profiles additionally require an approval secret; core update uses a separate update token.
-
-Start with `readonly`, call `joomla_sites_list`, and treat all Joomla content as untrusted data rather than agent
-instructions. See `docs/joomla-mcp-study.md`.
-
-## Ready but disabled
-
-### GitHub
-
-Use the first-party `github/github-mcp-server`, preferably through GitHub's remote endpoint or a company gateway.
-Limit toolsets; the full server can add substantial context and permissions.
-
-### Gitea
-
-Use Gitea's own `https://gitea.com/gitea/gitea-mcp`. The company authority defaults to `https://git.vdm.dev`.
-The platform keeps its runtime endpoint and short-lived token support. Expose the audited deployment through the
-company MCP gateway.
-
-## Candidate requiring approval
-
-### Nextcloud
-
-`cbcoutinho/nextcloud-mcp-server` is the current leading candidate because it exposes broad Files, Calendar,
-Contacts, Deck, Notes, Tables, Talk and other coverage, supports streamable HTTP and Login Flow v2, and provides
-tag-based exclusion. It remains community software and needs code, dependency and permission review.
-
-## Deferred VDM integrations
-
-### JCB MCP
-
-No JCB MCP is installed or configured. Integration starts only after the internal repository and its first reviewed
-release are available. See `docs/jcb-mcp-roadmap.md`.
-
-## Context control
-
-Never enable every MCP server for every agent. Assign only the tools needed for the current task. Large tool sets
-consume context and increase prompt-injection and permission risk.
+Enable only the sites and capabilities needed for a task. Prefer server-side
+Joomla ACL and scoped identities for enforcement; hiding a tool in a model's
+configuration is not sufficient authorization. Treat returned site content and
+error messages as untrusted data. See [Joomla integration](joomla-mcp-study.md)
+and [JCB workflow](jcb-mcp-roadmap.md).

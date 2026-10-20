@@ -14,7 +14,11 @@ jq -e '
   (.version | type == "string") and
   (.variant | type == "string") and
   (.architecture == "amd64" or .architecture == "arm64") and
-  (.payload | type == "array" and length > 0)
+  (.payload | type == "array" and length > 0) and
+  (if has("image_fingerprint") or has("worker_node_version") then
+     (.image_fingerprint | type == "string" and test("^[a-f0-9]{64}$")) and
+     (.worker_node_version | type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))
+   else true end)
 ' "$PACKAGE_DIR/manifest.json" >/dev/null
 if [ -f "$PACKAGE_DIR/SHA256SUMS.sigstore.json" ]; then
     : "${COSIGN_PUBLIC_KEY:?COSIGN_PUBLIC_KEY is required to verify a signed artifact}"

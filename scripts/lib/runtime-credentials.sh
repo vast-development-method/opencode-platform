@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 
 allowed_runtime_key() {
+    [[ "$1" =~ ^JOOMLA_MCP_[A-Z][A-Z0-9_]{0,63}_TOKEN$ ]] && return 0
     case "$1" in
         VDM_LLM_GATEWAY_URL|VDM_LLM_GATEWAY_TOKEN|\
         GITHUB_MCP_URL|GITHUB_MCP_TOKEN|\
         GITEA_MCP_URL|GITEA_MCP_TOKEN|\
         NEXTCLOUD_MCP_URL|NEXTCLOUD_MCP_TOKEN|\
         JOOMLA_MCP_URL|JOOMLA_MCP_TOKEN|\
-        JOOMLA_MCP_SITE_TOKEN|JOOMLA_MCP_UPDATE_TOKEN|\
-        JOOMLA_MCP_APPROVAL_SECRET|\
-        JCB_MCP_URL|JCB_MCP_TOKEN|\
+        JOOMLA_MCP_SITE_TOKEN|\
         STT_MCP_URL|STT_MCP_TOKEN|\
         VDM_LOCAL_LLM_BASE_URL|VDM_LOCAL_LLM_MODEL) return 0 ;;
         *) return 1 ;;

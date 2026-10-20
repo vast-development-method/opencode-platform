@@ -1,43 +1,26 @@
-# Known limitations
+# Verification boundaries
 
-- Static validation plus executing mocked launch, cleanup, listing, reaper,
-  credential and publication-retry tests are available, but the six real Incus
-  images have not yet been built in this delivery environment.
-- Build-resource selection, resumable checkpoints and cache detachment are
-  covered by repository tests, but release promotion still requires a real
-  clean `--no-cache` build on two independent hardware-virtualisation hosts.
-- JoomEngine MCP for Joomla `0.7.0` is now pinned, installed and fail-closed in
-  PHP/full images, but upstream still retains live-production evidence gates for
-  action families. This repository's safe helper proves only the configured
-  read profile; mutation/admin certification requires disposable-site evidence
-  and review of the upstream coverage/recovery status.
-- Ubuntu and Node packages still resolve from upstream repositories. The
-  NodeSource setup input is content-pinned, exact npm package versions are
-  verified, and release manifests record the result, but a timestamped
-  Ubuntu/npm package snapshot has not yet been enabled.
-- Syft, Grype and Cosign hooks fail closed in release mode, but a trusted
-  builder still needs those pinned tools and a short-lived OpenBao signing
-  identity.
-- AMD64 is the only promotable architecture. ARM64 identities are collision-safe
-  but remain disabled until native ARM64 build/import evidence exists.
-- Connected policy denies private, metadata and management IPv4 ranges while
-  retaining public Internet. A public HTTPS Joomla site is reachable; a private
-  Joomla site requires the still-gated brokered/restricted path or an explicit
-  lab policy.
-- Session secrets no longer appear in Incus command arguments, required Joomla
-  credential names are preflighted, and the process tree has a
-  systemd-enforced TTL. The session process and its authorised children can
-  still inspect credentials they must use; the tokenless root-owned relay
-  remains a broader release gate.
-- OpenBao/LiteLLM policies and routes are defined but the external broker,
-  authorization gateway, audit device, unseal, backup and revocation tests are
-  not deployed by this repository.
-- GitHub/Gitea builds require owned hardware-virtualisation runners. A second
-  independent clean host is mandatory for redistribution evidence.
-- OpenCode configuration compatibility must be revalidated whenever OpenCode is
-  upgraded.
-- Ubuntu 24.04/26.04 host portability is covered by fail-closed package,
-  privilege, systemd-unit and command-path contracts, and repository CI runs on
-  both GitHub-hosted OS images. Real KVM acceptance on both releases remains a
-  promotion gate; hosted CI cannot prove kernel virtualization, bridge egress
-  enforcement or a live systemd timer.
+- Repository and native HTTPS protocol tests run without an Incus host. They
+  prove validation, transport, credential handling and artifact contracts; they
+  do not prove KVM, bridge ACLs or a particular company's reverse proxy.
+- Production image promotion requires real builds and import/boot checks on the
+  target architecture. ARM64 worker promotion remains disabled pending that
+  native acceptance. Controller architecture support does not imply worker
+  image qualification.
+- Joomla/JCB MCP is an existing functional server. Enabled capabilities still
+  depend on installed extensions, synchronized definitions, the selected user's
+  ACL and the current Joomla site's state. Client configuration does not bypass
+  these native controls.
+- Persistent JoomEngine service deployment and native API identity provisioning
+  are provided by the companion Ductor integration. Existing Joomla volumes need
+  an explicit MCP migration; changing image tags alone is insufficient.
+- OpenBao KV-v2 retrieval is implemented for an already authenticated controller
+  token with exact read permissions. Workload authentication, the external TLS
+  endpoint and downstream Joomla token rotation remain deployment-owned inputs.
+  This does not claim a generic OAuth broker or automatic tokenless relay.
+- Company snapshots and exported handoffs are durable outside sessions only when
+  the selected source and destination storage are retained and backed up. Secret
+  scanning catches common patterns, not every possible confidential value.
+- Apt repositories still resolve mutable distribution inputs. Node has an exact
+  package/runtime pin and its setup script is content-verified; SBOMs and signed
+  package identities describe each resulting image.

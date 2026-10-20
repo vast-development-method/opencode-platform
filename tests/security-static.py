@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -131,7 +133,7 @@ class SecurityStaticTest(unittest.TestCase):
         self.assertIn('"$AGENT_HOME"', fingerprint_block)
         self.assertIn('"AGENT_HOME=$AGENT_HOME"', build)
 
-    def test_joomla_defaults_are_local_read_only_and_credential_free(self) -> None:
+    def test_joomla_defaults_reference_remote_identity_without_credentials(self) -> None:
         example = json.loads(
             (
                 ROOT
@@ -140,27 +142,34 @@ class SecurityStaticTest(unittest.TestCase):
         )
         self.assertNotIn("approval", example)
         for site in example["sites"].values():
-            self.assertTrue(site["api"]["baseUrl"].startswith("https://"))
-            self.assertEqual("JOOMLA_MCP_SITE_TOKEN", site["api"]["tokenEnv"])
-            for toolset in site["toolsets"]:
-                self.assertFalse(toolset.endswith(".write"))
-                self.assertFalse(toolset.endswith(".admin"))
-                self.assertNotEqual("core-update", toolset)
+            self.assertTrue(site["url"].startswith("https://"))
+            self.assertTrue(site["url"].endswith("/api/index.php/v1/joomengine-mcp"))
+            self.assertEqual("JOOMLA_MCP_SITE_TOKEN", site["tokenEnv"])
+            self.assertEqual("readonly", site["access"])
+            self.assertEqual({"url", "tokenEnv", "access"}, set(site))
 
-        provision = (ROOT / "image/provision/joomla-mcp.sh").read_text()
-        self.assertIn('"enabled": false', provision)
-        self.assertIn("--ignore-scripts", provision)
-        self.assertNotIn("JOOMLA_MCP_SITE_TOKEN=", provision)
-
-        configure = (ROOT / "scripts/configure-joomla-mcp.sh").read_text()
-        self.assertIn("allowIndefinite: false", configure)
-        self.assertNotIn("--env JOOMLA_MCP_SITE_TOKEN", configure)
-
-        session = (
-            ROOT / "image/files/usr/local/libexec/vdm-opencode-session"
-        ).read_text()
-        self.assertIn("/usr/local/bin/vdm-joomla-mcp-live-test", session)
-        self.assertNotIn("vdm-jomla", session)
+        helper = ROOT / "image/files/usr/local/libexec/vdm-joomla-mcp"
+        # Exercise the same validator used by provisioning, then demonstrate
+        # that transport credentials and unsafe origins cannot enter it.
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "sites.json"
+            path.write_text(json.dumps(example), encoding="utf-8")
+            subprocess.run(["bash", str(helper), "config-check", str(path)], check=True)
+            for bad_url in (
+                "http://joomla.example.com/api/index.php/v1/joomengine-mcp",
+                "https://user:secret@joomla.example.com/api/index.php/v1/joomengine-mcp",
+                "https://joomla.example.com/api/index.php/v1/joomengine-mcp?token=secret",
+                "https://joomla.example.com/../api/index.php/v1/joomengine-mcp",
+            ):
+                bad = json.loads(json.dumps(example))
+                bad["sites"]["company"]["url"] = bad_url
+                path.write_text(json.dumps(bad), encoding="utf-8")
+                result = subprocess.run(
+                    ["bash", str(helper), "config-check", str(path)],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertNotEqual(0, result.returncode, bad_url)
 
     def test_all_provider_routes_exist(self) -> None:
         config = yaml.safe_load((ROOT / "broker/config/litellm.yaml").read_text())
