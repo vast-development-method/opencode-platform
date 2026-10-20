@@ -16,6 +16,22 @@ JCB definitions**, or run the existing local administrator command:
 php cli/joomla.php joomla:mcp:jcb-sync
 ```
 
+Use the existing published image unchanged. The Joomla CLI already exposes the
+installed MCP and JCB commands. On the service, an authorized operator can
+inspect them using:
+
+```bash
+php cli/joomla.php list --raw
+php cli/joomla.php joomla:mcp:self-test
+php cli/joomla.php joomla:mcp:describe
+php cli/joomla.php joomla:mcp:cli-inventory
+php cli/joomla.php help componentbuilder:compile:component
+```
+
+Read the installed command's options before invoking it. The platform adapts to
+these existing contracts; it does not add extensions or platform requirements to
+the upstream Docker image.
+
 Synchronization discovers the actual installed component APIs and command input
 contracts, retaining administrator customization. Ordinary agent discovery reads
 the catalogue and does not perform synchronization. Routes depend on installed
@@ -31,7 +47,8 @@ and execution.
    fields as definition data and keep the Joomla identity's resource ACL intact.
 3. Prepare changes using the native permission/grant/plan/apply flow. Review the
    effective options, repository identity, definition changes and side effects.
-4. Submit compilation and package operations through the existing job tools.
+4. Submit remote compilation and package operations through the existing job
+   tools when the running service advertises and supports that capability.
    Package `get`, `init`, `pull`, `push` and `reset` are effectful operations even
    where their names sound like reads. The server remains the execution authority.
 5. Retain the returned job/execution identity. Poll status, download the advertised
@@ -43,17 +60,24 @@ and execution.
 
 The API user must have the native JCB permissions required by the operation plus
 its MCP permissions. Server-side workers keep the requesting user's authority;
-they do not turn a remote agent into the trusted local CLI owner. Workers need a
-compatible PHP CLI, `pcntl_fork`, `posix_setsid`, `proc_open` and private writable
-artifact storage.
+they do not turn a remote agent into the trusted local CLI owner. The server's
+detached background-job launcher has its own runtime requirements, including
+PHP process control and private artifact storage. Those requirements are not
+prerequisites for discovering or invoking Joomla's existing console commands.
+An unavailable background-job capability must be reported without rebuilding
+the upstream image or silently switching an agent to privileged console access.
 
 ## Operational boundaries
 
-Compilation and package commands use the server's reviewed native job adapter.
+Remote compilation and package commands use the server's reviewed native job adapter.
 Entity CRUD uses installed API contracts. These are complementary supported
 surfaces. Unsupported custom API contracts or native Joomla/JCB errors must remain
 visible; the agent must not substitute direct SQL, unrestricted shell access or a
 fabricated successful result.
+
+Authorized local operations use the installed Joomla CLI directly. CLI execution
+and remote MCP job execution have different authority and lifecycle semantics;
+successful console execution does not prove that detached remote jobs work.
 
 The platform provides connection configuration, scoped runtime credentials,
 protocol diagnostics and agent sessions. Joomla MCP provides grants, plans,
